@@ -20,6 +20,8 @@
  
  The code is provided 'as is', without any guarantuee. Use at your own risk! */
 
+#define BT 1
+
 #include <Wire.h>
 #include <SoftwareSerial.h>
 #include <LiquidCrystal_I2C.h>
@@ -29,6 +31,9 @@
 
 LiquidCrystal_I2C lcd(0x27,16,2);
 SoftwareSerial myCoffeemaker(4,5); // RX, TX
+#if defined(BT)
+SoftwareSerial myBT(7,6);
+#endif
 
 // general variables
 boolean buttonPress = false;
@@ -79,7 +84,9 @@ void setup()
   lcd.clear();
   lcd.print(F("starting up"));
   myCoffeemaker.begin(9600);         // start serial communication at 9600bps
-  Serial.begin(9600);           // Bluetooth at 9600bps (default)
+#if defined(BT)
+  myBT.begin(38400);
+#endif
   attachInterrupt(0, ISRreceiveData0, FALLING );  // RFID: data0/rx is connected to pin 2, which results in INT 0
   attachInterrupt(1, ISRreceiveData1, FALLING );  // RFID: data1/tx is connected to pin 3, which results in INT 1
   for (int i = 0; i < n; i++){  // read card numbers and referring credit from EEPROM
@@ -110,10 +117,20 @@ void loop()
   // Check if there is a bluetooth connection and command
   BTstring = "";
   //  buttonPress = false;
+  // handle serial and bluetooth input
+#if defined(BT)
+  myBT.listen();
+  while( myBT.available()) {
+    BTstring +=String(char(myBT.read()));
+    delay(7);
+  }
+#endif
   while( Serial.available() ){  
     BTstring += String(char(Serial.read()));
     delay(7);  
   }
+  BTstring.trim();
+  
   if (BTstring.length() > 0){
     // BT: Start registering new cards until 10 s no valid, unregistered card
     if( BTstring == "RRR" ){          
@@ -174,8 +191,10 @@ void loop()
     // BT: Send RFID card numbers to app    
     if(BTstring == "LLL"){  // 'L' for 'list' sends RFID card numbers to app   
       for(int i=0;i<n;i++){
-        Serial.print(print10digits(RFIDcards[i])); 
-        if (i < (n-1)) Serial.write(',');  // write comma after card number if not last
+#if defined(BT)
+        myBT.print(print10digits(RFIDcards[i])); 
+        if (i < (n-1)) myBT.write(',');  // write comma after card number if not last
+#endif
       }
     }
     // BT: Delete a card and referring credit   
@@ -255,13 +274,15 @@ void loop()
     if(BTstring.startsWith("REA") == true){
       // delay(100); // testweise      
       for (int i = 0; i < 11; i++) {
-        Serial.print(int(priceArray[i]/100));
-        Serial.print('.');
+#if defined(BT)
+        myBT.print(int(priceArray[i]/100));
+        myBT.print('.');
         if ((priceArray[i]%100) < 10){
-          Serial.print('0');
+          myBT.print('0');
         }
-        Serial.print(priceArray[i]%100);
-        if (i < 10) Serial.write(',');
+        myBT.print(priceArray[i]%100);
+        if (i < 10) myBT.write(',');
+#endif
       }
     }  
 
