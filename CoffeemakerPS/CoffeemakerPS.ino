@@ -31,9 +31,6 @@ LiquidCrystal_I2C lcd(0x27,16,2);
 SoftwareSerial myCoffeemaker(4,5); // RX, TX
 
 // general variables
-int i;
-int j;
-int k; 
 boolean buttonPress = false;
 const int n = 20;  // max total number of cards with access (up to 200 cards max = 199! Do not exceed otherwise you will overwrite price list!)
 int creditArray[n] = {      // remaining credit on card
@@ -133,8 +130,8 @@ void loop()
           if (RFIDcard > 0) break;
         } 
         while ( (millis()-time) < 60 );  
-        k = 0;
-        for(i=0;i<n;i++){
+        int k = 0;
+        for(int i=0;i<n;i++){
           if ((RFIDcard == RFIDcards[i]) && (RFIDcard > 0) && (k == 0)){   //  && (RFIDcard>0 (((RFIDcard) == (RFIDcards[i])) || ((card) > 0))
             lcd.clear();
             lcd.print(print10digits(RFIDcard));
@@ -146,7 +143,7 @@ void loop()
             beep(2);
           }
         }
-        for(i=0;i<n;i++){    
+        for(int i=0;i<n;i++){    
           if(RFIDcards[i] == 0 && k == 0 && RFIDcard > 0){
             RFIDcards[i] = RFIDcard;
             lcd.clear();
@@ -176,7 +173,7 @@ void loop()
     }
     // BT: Send RFID card numbers to app    
     if(BTstring == "LLL"){  // 'L' for 'list' sends RFID card numbers to app   
-      for(byte i=0;i<n;i++){  // variable type has to be byte otherwise it does not work
+      for(int i=0;i<n;i++){
         Serial.print(print10digits(RFIDcards[i])); 
         if (i < (n-1)) Serial.write(',');  // write comma after card number if not last
       }
@@ -184,7 +181,7 @@ void loop()
     // BT: Delete a card and referring credit   
     if(BTstring.startsWith("DDD") == true){
       BTstring.remove(0,3); // removes "DDD" and leaves the index
-      i = BTstring.toInt();
+      int i = BTstring.toInt();
       i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0       
       EEPROM.write(i*6, 0);    // writes card number (4 bytes)
       EEPROM.write(i*6+1, 0);
@@ -209,9 +206,9 @@ void loop()
       char a3 = BTstring.charAt(5);  // 5 and 6 => value to charge
       char a4 = BTstring.charAt(6);    
       BTstring = String(a1)+String(a2); 
-      i = BTstring.toInt();    // index of card
+      int i = BTstring.toInt();    // index of card
       BTstring = String(a3)+String(a4);
-      j = BTstring.toInt();   // value to charge
+      int j = BTstring.toInt();   // value to charge
       j *= 100;
       i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0  
       creditArray[i] += j;
@@ -230,15 +227,15 @@ void loop()
     }
     // BT: Receives (updated) price list from app.  
     if(BTstring.startsWith("CHA") == true){
-      k = 3;
-      for (i = 0; i < 11;i++){  
+      int k = 3;
+      for (int i = 0; i < 11;i++){  
         String tempString = "";
         do {
           tempString += BTstring.charAt(k);
           k++;
         } 
         while (BTstring.charAt(k) != ','); 
-        j = tempString.toInt();
+        int j = tempString.toInt();
         priceArray[i] = j;
         creditConvert.creditInt = j;
         EEPROM.write(i*2+1000, creditConvert.creditByte[0]);
@@ -257,7 +254,7 @@ void loop()
     // BT: Sends price list to app. Product 1 to 10 (0-9), prices divided by commas plus standard value for new cards
     if(BTstring.startsWith("REA") == true){
       // delay(100); // testweise      
-      for (i = 0; i < 11; i++) {
+      for (int i = 0; i < 11; i++) {
         Serial.print(int(priceArray[i]/100));
         Serial.print('.');
         if ((priceArray[i]%100) < 10){
@@ -393,8 +390,8 @@ void loop()
   while ( (millis()-time) < 60 );  
 
   if (RFIDcard > 0){
-    k = n;
-    for(byte i=0;i<n;i++){         
+    int k = n;
+    for(int i=0;i<n;i++){         
       if (((RFIDcard) == (RFIDcards[i])) && (RFIDcard > 0 )){
         k = i;
         if(buttonPress == true){                 // button pressed on coffeemaker?
@@ -517,7 +514,7 @@ String printCredit(int credit){
 String print10digits(long int number) {
   String(tempString) = String(number);
   String(newString) = "";
-  i = 10-tempString.length();
+  int i = 10-tempString.length();
   for (int a = 0; a < (10-tempString.length()); a++){
     newString += "0";
   }
@@ -554,11 +551,11 @@ void beep(byte number){
     break; 
   case 4:  // alarm (for whatever)
     for (int a = 0; a < 3; a++){
-      for (i = 2300; i > 600; i-=50){
+      for (int i = 2300; i > 600; i-=50){
         tone(12,i,20);
         delay(18);
       }     
-      for (i = 600; i < 2300; i+=50){
+      for (int i = 600; i < 2300; i+=50){
         tone(12,i,20);
         delay(18);
       }
@@ -596,7 +593,7 @@ long int RFID(){
 }
 
 byte checkParity(){
-  i = 0;
+  int i = 0;
   int evenCount = 0;
   int oddCount = 0;
   for(i = 0; i < 8; i++){
