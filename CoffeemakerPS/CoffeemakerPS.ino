@@ -30,12 +30,19 @@
 #include <SoftwareSerial.h>
 #include <LiquidCrystal_I2C.h>
 #include <EEPROM.h>
+#include <Adafruit_PN532.h>
 
 LiquidCrystal_I2C lcd(0x27,16,2);
 SoftwareSerial myCoffeemaker(4,5); // RX, TX
 #if defined(BT)
 SoftwareSerial myBT(7,6);
 #endif
+// Connect RFID by SPI
+#define PN532_SCK  (2)
+#define PN532_MOSI (3)
+#define PN532_SS   (4)
+#define PN532_MISO (5)
+Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 
 // product codes send by coffeemaker "?PA<x>\r\n", just <x>
 char products[] = "EFABJIG";
@@ -52,23 +59,13 @@ unsigned long time;  // timer for RFID etc
 unsigned long buttonTime;  // timer for button press 
 boolean override = false;  // to override payment system by the voice-control/button-press app
 
-// RFID related variables
-byte cardByte[4];
-long int cardNr;
-byte RFIDcardNum[4];
-byte evenBit = 0;
-byte oddBit = 0;
-byte isData0Low = 0;
-byte isData1Low = 0;
-int recvBitCount = 0;
-byte isCardReadOver = 0;
-long int RFIDcard = 0;
-long int RFIDcards[n] = {
+unsigned long RFIDcard = 0;
+unsigned long RFIDcards[n] = {
 }; 
 
 union{
   byte cardByte[4];
-  long int cardNr;
+  unsigned long cardNr;
 } 
 cardConvert;
 
@@ -91,8 +88,6 @@ void setup()
 #if defined(BT)
   myBT.begin(38400);
 #endif
-  attachInterrupt(0, ISRreceiveData0, FALLING );  // RFID: data0/rx is connected to pin 2, which results in INT 0
-  attachInterrupt(1, ISRreceiveData1, FALLING );  // RFID: data1/tx is connected to pin 3, which results in INT 1
   serlog(F("Reading EEPROM data"));
   for (int i = 0; i < n; i++){  // read card numbers and referring credit from EEPROM
     cardConvert.cardByte[0] = EEPROM.read(i*6);
@@ -109,12 +104,17 @@ void setup()
     creditConvert.creditByte[1] = EEPROM.read(i*2+1001);
     priceArray[i] = creditConvert.creditInt;
   }
-
-  lcd.clear();
-  lcd.print(F("finished"));
-  delay(300);
-  lcd.noBacklight();
-  lcd.clear();
+  // initialized rfid lib
+  serlog(F("Initializing rfid reader"));
+  nfc.begin();
+  uint32_t versiondata = nfc.getFirmwareVersion();
+  if (! versiondata) {
+    serlog(F("Didn't find PN53x board"));
+    while (1); // halt
+  }
+  // configure board to read RFID tags and cards
+  nfc.SAMConfig();
+  message_print(F("Ready to brew"), F(""), 2000);
 }
 
 void loop()
@@ -319,18 +319,18 @@ void loop()
   RFIDcard = 0;  
   time = millis(); 
   do {
-    RFIDcard = RFID();
-    if (RFIDcard > 0) {
+    RFIDcard = nfcidread();
+    if (RFIDcard != 0) {
       lcd.clear();
       break; 
     }           
   } 
   while ( (millis()-time) < 60 );  
 
-  if (RFIDcard > 0){
+  if (RFIDcard != 0){
     int k = n;
     for(int i=0;i<n;i++){         
-      if (((RFIDcard) == (RFIDcards[i])) && (RFIDcard > 0 )){
+      if (((RFIDcard) == (RFIDcards[i])) && (RFIDcard != 0 )){
         k = i;
         if(buttonPress == true){                 // button pressed on coffeemaker?
           if ((creditArray[k] - price) > 0){     // enough credit?
@@ -430,7 +430,7 @@ String printCredit(int credit){
   return output;
 }
 
-String print10digits(long int number) {
+String print10digits(unsigned long number) {
   String(tempString) = String(number);
   String(newString) = "";
   int i = 10-tempString.length();
@@ -526,8 +526,8 @@ void registernewcards() {
 do {
         RFIDcard = 0; 
         do {
-          RFIDcard = RFID();
-          if (RFIDcard > 0) {
+          RFIDcard = nfcidread();
+          if (RFIDcard != 0) {
             message_clear();
             break;
           }
@@ -535,7 +535,7 @@ do {
         while ( (millis()-time) < 60 );  
         int k = 0;
         for(int i=0;i<n;i++){
-          if ((RFIDcard == RFIDcards[i]) && (RFIDcard > 0) && (k == 0)){   //  && (RFIDcard>0 (((RFIDcard) == (RFIDcards[i])) || ((card) > 0))
+          if ((RFIDcard == RFIDcards[i]) && (RFIDcard != 0) && (k == 0)){   //  && (RFIDcard>0 (((RFIDcard) == (RFIDcards[i])) || ((card) > 0))
             message_print(print10digits(RFIDcard), F("already exists"), 0);         
             i = n;
             k = 1;
@@ -544,7 +544,7 @@ do {
           }
         }
         for(int i=0;i<n;i++){    
-          if(RFIDcards[i] == 0 && k == 0 && RFIDcard > 0){
+          if(RFIDcards[i] == 0 && k == 0 && RFIDcard != 0){
             RFIDcards[i] = RFIDcard;
             message_print( print10digits(RFIDcard), F("registered"),0);
             cardConvert.cardNr = RFIDcard;
@@ -568,90 +568,27 @@ do {
       beep(3);  
 }
 
-/* RFID READER */
-long int RFID(){    
-  //read card number bit
-  if(isData0Low||isData1Low){
-    if(1 == recvBitCount){//even bit
-      evenBit = (1-isData0Low)&isData1Low;
-    }
-    else if( recvBitCount >= 26){//odd bit
-      oddBit = (1-isData0Low)&isData1Low;
-      isCardReadOver = 1;
-      delay(10);   // test
-    }
-    else{
-      //only if isData1Low = 1, card bit could be 1
-      RFIDcardNum[2-(recvBitCount-2)/8] |= (isData1Low << (7-(recvBitCount-2)%8));
-    }
-    isData0Low = 0;
-    isData1Low = 0;
+unsigned long nfcidread(void) {
+  uint8_t success;
+  uint8_t uid[] = { 0,0,0,0,0,0,0,0 };
+  uint8_t uidLength;
+  unsigned long id;
+
+  success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+
+  if (success) {
+    // ugly hack: fine for mifare classic (4 byte)
+    // also fine for our ultras (last 4 bytes ever the same)
+    nfc.PrintHex(uid, uidLength);
+    id = (unsigned long)uid[0]<<24;
+    id += (unsigned long)uid[1]<<16;
+    id += (unsigned long)uid[2]<<8;
+    id += (unsigned long)uid[3];
+    return id;
   }
-  if(isCardReadOver){
-    if(checkParity()){
-      RFIDcard = (*((long *)RFIDcardNum));
-      beep(1);
-    }
-    resetData(); 
-  }
-  return (RFIDcard);
+  return 0;
 }
 
-byte checkParity(){
-  int i = 0;
-  int evenCount = 0;
-  int oddCount = 0;
-  for(i = 0; i < 8; i++){
-    if(RFIDcardNum[2]&(0x80>>i)){
-      evenCount++;
-    }
-  }
-  for(i = 0; i < 4; i++){
-    if(RFIDcardNum[1]&(0x80>>i)){
-      evenCount++;
-    }
-  }
-  for(i = 4; i < 8; i++){
-    if(RFIDcardNum[1]&(0x80>>i)){
-      oddCount++;
-    }
-  }
-  for(i = 0; i < 8; i++){
-    if(RFIDcardNum[0]&(0x80>>i)){
-      oddCount++;
-    }
-  }
-  if(evenCount%2 == evenBit && oddCount%2 != oddBit){
-    return 1;
-  }
-  else{
-    return 0;
-  }
-}
-
-void resetData(){
-  RFIDcardNum[0] = 0;
-  RFIDcardNum[1] = 0;
-  RFIDcardNum[2] = 0;
-  RFIDcardNum[3] = 0;
-  evenBit = 0;
-  oddBit = 0;
-  recvBitCount = 0;
-  isData0Low = 0;
-  isData1Low = 0;
-  isCardReadOver = 0;
-}
-// handle interrupt0
-void ISRreceiveData0(){
-  recvBitCount++;
-  isData0Low = 1;
-}
-
-// handle interrupt1
-void ISRreceiveData1(){
-  recvBitCount++;
-  isData1Low = 1;
-}
 
 
 
