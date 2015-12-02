@@ -362,15 +362,16 @@ void loop()
 
 String fromCoffeemaker(){
   String inputString = "";
+  byte d0, d1, d2, d3;
   char d4 = 255;
   while (myCoffeemaker.available()){    // if data is available to read
-    byte d0 = myCoffeemaker.read();
+    d0 = myCoffeemaker.read();
     delay (1); 
-    byte d1 = myCoffeemaker.read();
+    d1 = myCoffeemaker.read();
     delay (1); 
-    byte d2 = myCoffeemaker.read();
+    d2 = myCoffeemaker.read();
     delay (1); 
-    byte d3 = myCoffeemaker.read();
+    d3 = myCoffeemaker.read();
     delay (7);
     bitWrite(d4, 0, bitRead(d0,2));
     bitWrite(d4, 1, bitRead(d0,5));
