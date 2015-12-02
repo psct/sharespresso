@@ -20,7 +20,11 @@
  
  The code is provided 'as is', without any guarantuee. Use at your own risk! */
 
+// compile time configuration options
+#define BUZZER 1
 #define BT 1
+#define LCD 1
+#define SERLOG 1
 
 #include <Wire.h>
 #include <SoftwareSerial.h>
@@ -75,20 +79,20 @@ creditConvert;
 
 void setup()
 {
+#if defined(SERLOG)
+  Serial.begin(9600);
+#endif
+#if defined(LCD)
   lcd.init();
-  lcd.backlight();
-  lcd.print(F("CoffeemakerPS"));
-  lcd.setCursor(0,1);
-  lcd.print(F("  v 0.8"));
-  delay(3500);
-  lcd.clear();
-  lcd.print(F("starting up"));
+#endif
+  message_print(F("CoffeemakerPS v0.8"), F("starting up"), 0);
   myCoffeemaker.begin(9600);         // start serial communication at 9600bps
 #if defined(BT)
   myBT.begin(38400);
 #endif
   attachInterrupt(0, ISRreceiveData0, FALLING );  // RFID: data0/rx is connected to pin 2, which results in INT 0
   attachInterrupt(1, ISRreceiveData1, FALLING );  // RFID: data1/tx is connected to pin 3, which results in INT 1
+  serlog(F("Reading EEPROM data"));
   for (int i = 0; i < n; i++){  // read card numbers and referring credit from EEPROM
     cardConvert.cardByte[0] = EEPROM.read(i*6);
     cardConvert.cardByte[1] = EEPROM.read(i*6+1);
@@ -113,7 +117,8 @@ void setup()
 }
 
 void loop()
-{ 
+{
+  serlog(F("Entering loop")); 
   // Check if there is a bluetooth connection and command
   BTstring = "";
   //  buttonPress = false;
@@ -136,10 +141,7 @@ void loop()
     if( BTstring == "RRR" ){          
       time = millis();
       beep(1);
-      lcd.backlight();
-      lcd.print(F("Registering"));
-      lcd.setCursor(0,1);
-      lcd.print(F("new cards"));
+      message_print(F("Registering"),F("new cards"),0);
       do {
         RFIDcard = 0; 
         do {
@@ -150,10 +152,7 @@ void loop()
         int k = 0;
         for(int i=0;i<n;i++){
           if ((RFIDcard == RFIDcards[i]) && (RFIDcard > 0) && (k == 0)){   //  && (RFIDcard>0 (((RFIDcard) == (RFIDcards[i])) || ((card) > 0))
-            lcd.clear();
-            lcd.print(print10digits(RFIDcard));
-            lcd.setCursor(0,1);
-            lcd.print(F("already exists!"));         
+            message_print(print10digits(RFIDcard), F("already exists"), 0);         
             i = n;
             k = 1;
             time = millis();           
@@ -163,10 +162,7 @@ void loop()
         for(int i=0;i<n;i++){    
           if(RFIDcards[i] == 0 && k == 0 && RFIDcard > 0){
             RFIDcards[i] = RFIDcard;
-            lcd.clear();
-            lcd.print(print10digits(RFIDcard));
-            lcd.setCursor(0,1);
-            lcd.print(F("registered"));
+            message_print( print10digits(RFIDcard), F("registered"),0);
             cardConvert.cardNr = RFIDcard;
             EEPROM.write(i*6, cardConvert.cardByte[0]);
             EEPROM.write(i*6+1, cardConvert.cardByte[1]);
@@ -184,9 +180,9 @@ void loop()
         }
       } 
       while ( (millis()-time) < 10000 );
-      beep(3);   
-      lcd.clear();
-      lcd.noBacklight();    
+      serlog(F("Registering ended"));
+      beep(3);
+      message_clear();
     }
     // BT: Send RFID card numbers to app    
     if(BTstring == "LLL"){  // 'L' for 'list' sends RFID card numbers to app   
@@ -209,14 +205,8 @@ void loop()
       EEPROM.write(i*6+4, 0);  // writes credit (2 bytes)
       EEPROM.write(i*6+5, 0);
       beep(1);
-      lcd.backlight();
-      lcd.print(print10digits(RFIDcards[i])); 
-      lcd.setCursor(0,1);
-      lcd.print(F("deleted!"));
       RFIDcards[i] = 0;
-      delay(2000);
-      lcd.clear();
-      lcd.noBacklight(); 
+      message_print(print10digits(RFIDcards[i]), F("deleted!"), 2000);
     }    
     // BT: Charge a card    
     if((BTstring.startsWith("CCC") == true) ){  // && (BTstring.length() >= 7 )
@@ -235,14 +225,7 @@ void loop()
       EEPROM.write(i*6+4, creditConvert.creditByte[0]);
       EEPROM.write(i*6+5, creditConvert.creditByte[1]); 
       beep(1);
-      lcd.backlight();
-      lcd.print(print10digits((RFIDcards[i])-j)); 
-      lcd.setCursor(0,1);
-      lcd.print(F("+"));   
-      lcd.print(printCredit(j));
-      delay(2000);
-      lcd.noBacklight();
-      lcd.clear();
+      message_print(print10digits((RFIDcards[i])-j),"+"+printCredit(j),2000);
     }
     // BT: Receives (updated) price list from app.  
     if(BTstring.startsWith("CHA") == true){
@@ -262,13 +245,7 @@ void loop()
         k++;
       }
       beep(1);
-      lcd.backlight();
-      lcd.print("Pricelist");
-      lcd.setCursor(0,1);
-      lcd.print("updated!");
-      delay(2000);
-      lcd.noBacklight();
-      lcd.clear();
+      message_print(F("Pricelist"), F("updated!"), 2000);
     }
     // BT: Sends price list to app. Product 1 to 10 (0-9), prices divided by commas plus standard value for new cards
     if(BTstring.startsWith("REA") == true){
@@ -292,40 +269,25 @@ void loop()
       lcd.backlight();
       if (fromCoffeemaker() == "?ok\r\n"){
         beep(1);
-        lcd.print(F("Inkasso mode"));
-        lcd.setCursor(0,1);
-        lcd.print(F("activated!"));  
+        message_print(F("Inkasso mode"),F("activated!"),2000);  
       } 
       else {
         beep(2);
-        lcd.print(F("Coffeemaker"));
-        lcd.setCursor(0,1);
-        lcd.print(F("not responding!"));  
-      }
-      delay(2000);
-      lcd.clear();
-      lcd.noBacklight();     
+        message_print(F("Coffeemaker"),F("not responding!"),2000);  
+      }  
     }
 
     if(BTstring == "?M1"){  
       toCoffeemaker("?M1\r\n");  // deactivates incasso mode (= no coffee w/o "ok" from the payment system! May be inactivated by sending "?M3" without quotation marks)
       delay (100);               // wait for answer from coffeemaker
-      lcd.backlight();
       if (fromCoffeemaker() == "?ok\r\n"){
         beep(1);
-        lcd.print(F("Inkasso mode"));
-        lcd.setCursor(0,1);
-        lcd.print(F("deactivated!"));  
+        message_print(F("Inkasso mode"),F("deactivated!"),2000);  
       } 
       else {
         beep(2);
-        lcd.print(F("Coffeemaker"));
-        lcd.setCursor(0,1);
-        lcd.print(F("not responding!"));  
+        message_print(F("Coffeemaker"),F("not responding!"),2000);  
       }
-      delay(2000);
-      lcd.clear();
-      lcd.noBacklight();     
     }
     if(BTstring == "FA:04"){        // small cup ordered via app
       toCoffeemaker("FA:04\r\n"); 
@@ -342,6 +304,7 @@ void loop()
   }          
 
   // Get key pressed on coffeemaker
+  serlog(F("Reading Coffeemaker"));
   String message = fromCoffeemaker();   // gets answers from coffeemaker 
   if (message.length() > 0){
     if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
@@ -390,8 +353,8 @@ void loop()
   if (millis()-buttonTime > 5000){  
     buttonPress = false;
     price = 0;
-    lcd.noBacklight();
-    lcd.clear();     
+    message_clear();
+    serlog(F("Timeout getting keypress on machine"));     
   }
   if (buttonPress == true && override == true){
     toCoffeemaker("?ok\r\n");
@@ -418,46 +381,27 @@ void loop()
         if(buttonPress == true){                 // button pressed on coffeemaker?
           if ((creditArray[k] - price) > 0){     // enough credit?
             creditArray[k] -= price;
-            lcd.backlight();
-            lcd.setCursor(0, 0);
-            lcd.print(print10digits(RFIDcards[k]));
-            lcd.setCursor(0, 1);
-            lcd.print(printCredit(creditArray[k]));
+            message_print(print10digits(RFIDcards[k])+ printCredit(creditArray[k]), F(" "), 0);
             creditConvert.creditInt = creditArray[k];
             EEPROM.write(k*6+4, creditConvert.creditByte[0]);
             EEPROM.write(k*6+5, creditConvert.creditByte[1]);
             toCoffeemaker("?ok\r\n");            // prepare coffee
           } 
           else {                                 // not enough credit!
-            lcd.backlight();
-            lcd.setCursor(0, 0);
-            lcd.print(print10digits(RFIDcard));
-            lcd.setCursor(0, 1);
-            lcd.print(printCredit(creditArray[k]));
             beep(2);
-            delay(2000);  
+            message_print(print10digits(RFIDcard)+ printCredit(creditArray[k]), F("Not enough credit "), 2000);  
           }
         } 
         else {                                // if no button was pressed on coffeemaker / check credit
-          lcd.backlight();
-          lcd.print(print10digits(RFIDcards[k]));
-          lcd.setCursor(0, 1);
-          lcd.print(printCredit(creditArray[k]));      
+          message_print(print10digits(RFIDcards[k])+ printCredit(creditArray[k]), F("Remaining credit"), 2000);      
         }
-        delay(2000);
-        lcd.noBacklight();
-        lcd.clear();      
         i = n;      // leave loop (after card has been identified)
       }      
     }
     if (k == n){ 
-      lcd.backlight();
-      lcd.print(print10digits(RFIDcard));
-      lcd.setCursor(0,1);
-      lcd.print(F("card unknown!"));		
       k=0; 
       beep(2);
-      delay(2000);
+      message_print(String(print10digits(RFIDcard)),F("card unknown!"),2000);
     }     	    
   }
 }
@@ -553,7 +497,45 @@ String print2digits(int number) {
   return partString;
 }
 
+void serlog(String msg) {
+#if defined(SERLOG)
+  Serial.println(msg);
+#endif
+}
+
+void message_print(String msg1, String msg2, int wait) {
+#if defined(SERLOG)
+  if (msg1 != "") { Serial.print(msg1 + " "); }
+  if (msg2 != "") { Serial.print(msg2); }
+  if ((msg1 != "") || (msg2 != "")) { Serial.println(""); }
+#endif
+#if defined(LCD)
+  lcd.backlight();
+  if (msg1 != "") {
+    lcd.setCursor(0, 0);
+    lcd.print(msg1);
+  }
+  if (msg2 != "") {
+    lcd.setCursor(0, 1);
+    lcd.print(msg2);
+  }
+  if (wait > 0) { 
+    delay(wait);
+    lcd.clear();
+    lcd.noBacklight();
+  }
+#endif
+}
+
+void message_clear() {
+#if defined(LCD)
+  lcd.clear();
+  lcd.noBacklight();
+#endif
+}
+
 void beep(byte number){
+#if defined (BUZZER)
   int duration = 200;
   switch (number) {
   case 1: // positive feedback
@@ -582,6 +564,7 @@ void beep(byte number){
       }
     }  
   }
+#endif
 }
 
 /* RFID READER */
