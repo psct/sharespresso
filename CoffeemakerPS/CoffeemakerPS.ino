@@ -39,6 +39,9 @@ SoftwareSerial myCoffeemaker(4,5); // RX, TX
 SoftwareSerial myBT(7,6);
 #endif
 
+// product codes send by coffeemaker "?PA<x>\r\n"
+char products[] = "EFABJIG";
+
 // general variables
 boolean buttonPress = false;
 const int n = 20;  // max total number of cards with access (up to 200 cards max = 199! Do not exceed otherwise you will overwrite price list!)
@@ -309,45 +312,37 @@ void loop()
   if (message.length() > 0){
     if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
       buttonPress = true;
-      buttonTime = millis(); 
-      lcd.backlight();
-      if (message == "?PAE\r\n"){
-        price = priceArray[0];        // product 1 (small cup)
-        lcd.print(F("Small cup"));
-      }     
-      else if (message == "?PAF\r\n"){
-        price = priceArray[1];      // product 2 (2 small cups)
-        lcd.print(F("2 small cups"));
-      } 
-      else if (message == "?PAA\r\n"){         
-        price = priceArray[2];   // product 3 (large cup)
-        lcd.print(F("Large cup"));
-      } 
-      else if (message == "?PAB\r\n"){
-        price = priceArray[3];     // product 4 (2 large cups)
-        lcd.print(F("2 large cups"));
-      } 
-      else if (message == "?PAJ\r\n"){
-        price = priceArray[4];      // product 5 (steam)
-        lcd.print(F("Steam 2"));
-      } 
-      else if (message == "?PAI\r\n"){
-        price = priceArray[5];      // product 6 (steam)
-        lcd.print(F("Steam 1"));
-      }    
-      else if (message == "?PAG\r\n"){
-        price = priceArray[6];      // product 7 (extra large cup)
-        lcd.print(F("Extra large cup"));
+      buttonTime = millis();
+      int product = 0;
+      for (int i = 0; i < 8; i++) {
+        if (message.charAt(3) == products[i]) {
+          product = i;
+          break;
+        }
+      }
+      if ( product != 0) {
+        String productname;
+          switch (product) {
+            case 0: productname = F("Small cup"); break;
+            case 1: productname = F("2 small cups"); break;
+            case 2: productname = F("Large cup"); break;
+            case 3: productname = F("2 large cups"); break;
+            case 4: productname = F("Steam 2"); break;
+            case 5: productname = F("Steam 1"); break;
+            case 6: productname = F("Extra large cup"); break;
+          }
+        price = priceArray[product];
+        message_print(productname, printCredit(price), 0);
       } 
       else {
-        lcd.print(F("Read error"));
+        message_print(F("Error reading"), F("from coffeemaker"), 2000);
+        serlog(F("Read error"));
         buttonPress = false;
       }
+      // boss mode, he does not pay
       if (override == true){
         price = 0;
       }
-      lcd.setCursor(0,1);  
-      lcd.print(printCredit(price));
     }
   }
   if (millis()-buttonTime > 5000){  
