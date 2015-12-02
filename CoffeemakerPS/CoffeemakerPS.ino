@@ -31,15 +31,13 @@
 #include <LiquidCrystal_I2C.h>
 #include <EEPROM.h>
 
-#define error(s) error_P(PSTR(s))
-
 LiquidCrystal_I2C lcd(0x27,16,2);
 SoftwareSerial myCoffeemaker(4,5); // RX, TX
 #if defined(BT)
 SoftwareSerial myBT(7,6);
 #endif
 
-// product codes send by coffeemaker "?PA<x>\r\n"
+// product codes send by coffeemaker "?PA<x>\r\n", just <x>
 char products[] = "EFABJIG";
 
 // general variables
@@ -149,7 +147,10 @@ void loop()
         RFIDcard = 0; 
         do {
           RFIDcard = RFID();
-          if (RFIDcard > 0) break;
+          if (RFIDcard > 0) {
+            message_clear();
+            break;
+          }
         } 
         while ( (millis()-time) < 60 );  
         int k = 0;
@@ -384,11 +385,11 @@ void loop()
           } 
           else {                                 // not enough credit!
             beep(2);
-            message_print(print10digits(RFIDcard)+ printCredit(creditArray[k]), F("Not enough credit "), 2000);  
+            message_print(printCredit(creditArray[k]), F("Not enough credit "), 2000);  
           }
         } 
         else {                                // if no button was pressed on coffeemaker / check credit
-          message_print(print10digits(RFIDcards[k])+ printCredit(creditArray[k]), F("Remaining credit"), 2000);      
+          message_print(printCredit(creditArray[k]), F("Remaining credit"), 2000);      
         }
         i = n;      // leave loop (after card has been identified)
       }      
@@ -505,6 +506,7 @@ void message_print(String msg1, String msg2, int wait) {
   if ((msg1 != "") || (msg2 != "")) { Serial.println(""); }
 #endif
 #if defined(LCD)
+  lcd.clear();
   lcd.backlight();
   if (msg1 != "") {
     lcd.setCursor(0, 0);
