@@ -272,14 +272,14 @@ void loop()
     if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
       buttonPress = true;
       buttonTime = millis();
-      int product = 0;
+      int product = 255;
       for (int i = 0; i < 8; i++) {
         if (message.charAt(3) == products[i]) {
           product = i;
           break;
         }
       }
-      if ( product != 0) {
+      if ( product != 255) {
         String productname;
           switch (product) {
             case 0: productname = F("Small cup"); break;
