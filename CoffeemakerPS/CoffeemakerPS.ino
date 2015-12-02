@@ -49,7 +49,7 @@ char products[] = "EFABJIG";
 
 // general variables
 boolean buttonPress = false;
-const int n = 20;  // max total number of cards with access (up to 200 cards max = 199! Do not exceed otherwise you will overwrite price list!)
+const int n = 40;  // max total number of cards with access (up to 200 cards max = 199! Do not exceed otherwise you will overwrite price list!)
 int creditArray[n] = {      // remaining credit on card
 }; 
 int price;           // price variable
