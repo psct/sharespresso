@@ -229,7 +229,7 @@ void loop()
       toCoffeemaker("?M3\r\n");  // activates incasso mode (= no coffee w/o "ok" from the payment system! May be inactivated by sending "?M3" without quotation marks)
       delay (100);               // wait for answer from coffeemaker
       lcd.backlight();
-      if (fromCoffeemaker() == "?ok\r\n"){
+      if (fromCoffeemaker() == "?ok"){
         beep(1);
         message_print(F("Inkasso mode"),F("activated!"),2000);  
       } 
@@ -242,7 +242,7 @@ void loop()
     if(BTstring == "?M1"){  
       toCoffeemaker("?M1\r\n");  // deactivates incasso mode (= no coffee w/o "ok" from the payment system! May be inactivated by sending "?M3" without quotation marks)
       delay (100);               // wait for answer from coffeemaker
-      if (fromCoffeemaker() == "?ok\r\n"){
+      if (fromCoffeemaker() == "?ok"){
         beep(1);
         message_print(F("Inkasso mode"),F("deactivated!"),2000);  
       } 
@@ -380,13 +380,11 @@ String fromCoffeemaker(){
     bitWrite(d4, 5, bitRead(d2,5));
     bitWrite(d4, 6, bitRead(d3,2));
     bitWrite(d4, 7, bitRead(d3,5));
-    if (d4 != 10){ 
-      inputString += d4;
-    } 
-    else { 
-      inputString += d4;
-      return(inputString);
-    } 
+    inputString += d4;
+  }
+  inputString.trim();
+  if ( inputString != "") {
+        return(inputString);
   } 
 }
 
