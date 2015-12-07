@@ -30,6 +30,7 @@
 #include <SoftwareSerial.h>
 #include <LiquidCrystal_I2C.h>
 #include <EEPROM.h>
+#include <SPI.h>
 #include <Adafruit_PN532.h>
 
 LiquidCrystal_I2C lcd(0x20,16,2);
