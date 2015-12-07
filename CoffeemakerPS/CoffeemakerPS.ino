@@ -38,10 +38,10 @@ SoftwareSerial myCoffeemaker(4,5); // RX, TX
 SoftwareSerial myBT(7,6);
 #endif
 // Connect RFID by SPI
-#define PN532_SCK  (2)
-#define PN532_MOSI (3)
-#define PN532_SS   (4)
-#define PN532_MISO (5)
+#define PN532_SCK  (13)
+#define PN532_MOSI (11)
+#define PN532_SS   (10)
+#define PN532_MISO (12)
 Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 
 // product codes send by coffeemaker "?PA<x>\r\n", just <x>
