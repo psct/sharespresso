@@ -31,7 +31,14 @@
 #include <LiquidCrystal_I2C.h>
 #include <EEPROM.h>
 #include <SPI.h>
-#include <Adafruit_PN532.h>
+// Das Adfruit-Teil taugt nicht
+// teils blockieren Aufrufe
+// teils nicht - ohne System
+// #include <Adafruit_PN532.h>
+// Deshalb die Seeed-Studio-Variante:
+// https://github.com/Seeed-Studio/PN532
+#include <PN532_SPI.h>
+#include <PN532.h>
 
 LiquidCrystal_I2C lcd(0x20,16,2);
 SoftwareSerial myCoffeemaker(4,5); // RX, TX
@@ -39,11 +46,15 @@ SoftwareSerial myCoffeemaker(4,5); // RX, TX
 SoftwareSerial myBT(7,6);
 #endif
 // Connect RFID by SPI
+/*
 #define PN532_SCK  (13)
 #define PN532_MOSI (11)
 #define PN532_SS   (10)
 #define PN532_MISO (12)
 Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
+*/
+PN532_SPI pn532spi(SPI, 10);
+PN532 nfc(pn532spi);
 
 // product codes send by coffeemaker "?PA<x>\r\n", just <x>
 char products[] = "EFABJIG";
@@ -525,70 +536,68 @@ void beep(byte number){
 }
 
 void registernewcards() {
-do {
-        RFIDcard = 0; 
-        do {
-          RFIDcard = nfcidread();
-          if (RFIDcard != 0) {
-            message_clear();
-            break;
-          }
-        } 
-        while ( (millis()-time) < 60 );  
-        int k = 0;
-        for(int i=0;i<n;i++){
-          if ((RFIDcard == RFIDcards[i]) && (RFIDcard != 0) && (k == 0)){   //  && (RFIDcard>0 (((RFIDcard) == (RFIDcards[i])) || ((card) > 0))
-            message_print(print10digits(RFIDcard), F("already exists"), 0);         
-            i = n;
-            k = 1;
-            time = millis();           
-            beep(2);
-          }
-        }
-        for(int i=0;i<n;i++){    
-          if(RFIDcards[i] == 0 && k == 0 && RFIDcard != 0){
-            RFIDcards[i] = RFIDcard;
-            message_print( print10digits(RFIDcard), F("registered"),0);
-            cardConvert.cardNr = RFIDcard;
-            EEPROM.write(i*6, cardConvert.cardByte[0]);
-            EEPROM.write(i*6+1, cardConvert.cardByte[1]);
-            EEPROM.write(i*6+2, cardConvert.cardByte[2]);
-            EEPROM.write(i*6+3, cardConvert.cardByte[3]);
-            creditArray[i] = priceArray[10]; // standard credit for newly registered cards          
-            creditConvert.creditInt = creditArray[i];
-            EEPROM.write(i*6+4, creditConvert.creditByte[0]);  
-            EEPROM.write(i*6+5, creditConvert.creditByte[1]);
-            beep(1);
-            i = n;
-            k = 2;
-            time = millis();          
-          }   
-        }
-      } 
-      while ( (millis()-time) < 10000 );
-      serlog(F("Registering ended"));
-      beep(3);  
+  do {
+    RFIDcard = 0;
+    do {
+      RFIDcard = nfcidread();
+      if (RFIDcard != 0) {
+        message_clear();
+        break;
+      }
+    } while ( (millis()-time) < 60 );  
+    int k = 0;
+    for(int i=0;i<n;i++){
+      if ((RFIDcard == RFIDcards[i]) && (RFIDcard != 0) && (k == 0)){   //  && (RFIDcard>0 (((RFIDcard) == (RFIDcards[i])) || ((card) > 0))
+        message_print(print10digits(RFIDcard), F("already exists"), 0);         
+        i = n;
+        k = 1;
+        time = millis();           
+        beep(2);
+      }
+    }
+    for(int i=0;i<n;i++){    
+      if(RFIDcards[i] == 0 && k == 0 && RFIDcard != 0){
+        RFIDcards[i] = RFIDcard;
+        message_print( print10digits(RFIDcard), F("registered"),0);
+        cardConvert.cardNr = RFIDcard;
+        EEPROM.write(i*6, cardConvert.cardByte[0]);
+        EEPROM.write(i*6+1, cardConvert.cardByte[1]);
+        EEPROM.write(i*6+2, cardConvert.cardByte[2]);
+        EEPROM.write(i*6+3, cardConvert.cardByte[3]);
+        creditArray[i] = priceArray[10]; // standard credit for newly registered cards          
+        creditConvert.creditInt = creditArray[i];
+        EEPROM.write(i*6+4, creditConvert.creditByte[0]);  
+        EEPROM.write(i*6+5, creditConvert.creditByte[1]);
+        beep(1);
+        i = n;
+        k = 2;
+        time = millis();          
+      }   
+    }
+    serlog(F("ro"));  
+  } while ( (millis()-time) < 10000 );
+  serlog(F("Registering ended"));
+  beep(3);  
 }
 
 unsigned long nfcidread(void) {
   uint8_t success;
   uint8_t uid[] = { 0,0,0,0,0,0,0,0 };
   uint8_t uidLength;
-  unsigned long id;
+  unsigned long id=0;
 
   success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
 
   if (success) {
     // ugly hack: fine for mifare classic (4 byte)
     // also fine for our ultras (last 4 bytes ever the same)
-    nfc.PrintHex(uid, uidLength);
+    // nfc.PrintHex(uid, uidLength);
     id = (unsigned long)uid[0]<<24;
     id += (unsigned long)uid[1]<<16;
     id += (unsigned long)uid[2]<<8;
     id += (unsigned long)uid[3];
-    return id;
   }
-  return 0;
+  return id;
 }
 
 
