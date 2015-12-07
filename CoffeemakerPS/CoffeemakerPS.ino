@@ -115,6 +115,7 @@ void setup()
   }
   // configure board to read RFID tags and cards
   nfc.SAMConfig();
+  nfc.setPassiveActivationRetries(0x80);
   message_print(F("Ready to brew"), F(""), 2000);
 }
 
