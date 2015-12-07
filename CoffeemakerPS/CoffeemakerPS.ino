@@ -360,6 +360,7 @@ void loop()
       message_print(String(print10digits(RFIDcard)),F("card unknown!"),2000);
     }     	    
   }
+  serlog(F("Exiting loop"));
 }
 
 String fromCoffeemaker(){
