@@ -152,6 +152,7 @@ void loop()
   
   if (BTstring.length() > 0){
     // BT: Start registering new cards until 10 s no valid, unregistered card
+    serlog(BTstring);
     if( BTstring == "RRR" ){          
       time = millis();
       beep(1);
@@ -173,6 +174,7 @@ void loop()
       BTstring.remove(0,3); // removes "DDD" and leaves the index
       int i = BTstring.toInt();
       i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0       
+      message_print(print10digits(RFIDcards[i]), F("deleting"), 2000);
       EEPROM.write(i*6, 0);    // writes card number (4 bytes)
       EEPROM.write(i*6+1, 0);
       EEPROM.write(i*6+2, 0);
@@ -181,7 +183,6 @@ void loop()
       EEPROM.write(i*6+5, 0);
       beep(1);
       RFIDcards[i] = 0;
-      message_print(print10digits(RFIDcards[i]), F("deleted!"), 2000);
     }    
     // BT: Charge a card    
     if((BTstring.startsWith("CCC") == true) ){  // && (BTstring.length() >= 7 )
@@ -545,36 +546,39 @@ void registernewcards() {
         break;
       }
     } while ( (millis()-time) < 60 );  
-    int k = 0;
-    for(int i=0;i<n;i++){
-      if ((RFIDcard == RFIDcards[i]) && (RFIDcard != 0) && (k == 0)){   //  && (RFIDcard>0 (((RFIDcard) == (RFIDcards[i])) || ((card) > 0))
-        message_print(print10digits(RFIDcard), F("already exists"), 0);         
-        i = n;
-        k = 1;
-        time = millis();           
-        beep(2);
+    int k = 255;
+    if (RFIDcard != 0) {
+      for(int i=0;i<n;i++){
+        if (RFIDcard == RFIDcards[i]) {
+          message_print(print10digits(RFIDcard), F("already exists"), 0);
+          beep(2);
+          k=254;         
+          break;
+        }
+        if ((RFIDcards[i] == 0) && (k == 255)) { // find first empty slot
+          k=i;
+        }
       }
-    }
-    for(int i=0;i<n;i++){    
-      if(RFIDcards[i] == 0 && k == 0 && RFIDcard != 0){
-        RFIDcards[i] = RFIDcard;
+      if ( k == 255) {
+        message_print(F("no slot left"),F(""),0);         
+        break;
+      }
+      if ( k != 254) {
+        RFIDcards[k] = RFIDcard;
         message_print( print10digits(RFIDcard), F("registered"),0);
         cardConvert.cardNr = RFIDcard;
-        EEPROM.write(i*6, cardConvert.cardByte[0]);
-        EEPROM.write(i*6+1, cardConvert.cardByte[1]);
-        EEPROM.write(i*6+2, cardConvert.cardByte[2]);
-        EEPROM.write(i*6+3, cardConvert.cardByte[3]);
-        creditArray[i] = priceArray[10]; // standard credit for newly registered cards          
-        creditConvert.creditInt = creditArray[i];
-        EEPROM.write(i*6+4, creditConvert.creditByte[0]);  
-        EEPROM.write(i*6+5, creditConvert.creditByte[1]);
+        EEPROM.write(k*6, cardConvert.cardByte[0]);
+        EEPROM.write(k*6+1, cardConvert.cardByte[1]);
+        EEPROM.write(k*6+2, cardConvert.cardByte[2]);
+        EEPROM.write(k*6+3, cardConvert.cardByte[3]);
+        creditArray[k] = priceArray[10]; // standard credit for newly registered cards          
+        creditConvert.creditInt = creditArray[k];
+        EEPROM.write(k*6+4, creditConvert.creditByte[0]);  
+        EEPROM.write(k*6+5, creditConvert.creditByte[1]);
         beep(1);
-        i = n;
-        k = 2;
-        time = millis();          
-      }   
+      }
+      time = millis();
     }
-    serlog(F("ro"));  
   } while ( (millis()-time) < 10000 );
   serlog(F("Registering ended"));
   beep(3);  
