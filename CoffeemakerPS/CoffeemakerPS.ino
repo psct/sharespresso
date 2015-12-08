@@ -27,6 +27,7 @@
 #define BT 1
 #define LCD 1
 #define SERLOG 1
+//#define RFID 1
 
 #include <Wire.h>
 #include <SoftwareSerial.h>
@@ -118,7 +119,9 @@ void setup()
   uint32_t versiondata = nfc.getFirmwareVersion();
   if (! versiondata) {
     serlog(F("Didn't find PN53x board"));
+ #if defined(RFID)
     while (1); // halt
+ #endif
   }
   // configure board to read RFID tags and cards
   nfc.SAMConfig();
