@@ -28,6 +28,7 @@
 #define LCD 1
 #define SERLOG 1
 //#define RFID 1
+#define NET 1
 
 #include <Wire.h>
 #include <SoftwareSerial.h>
@@ -42,6 +43,8 @@
 // https://github.com/Seeed-Studio/PN532
 #include <PN532_SPI.h>
 #include <PN532.h>
+#include <Ethernet.h>
+#include <Syslog.h>
 
 LiquidCrystal_I2C lcd(0x20,16,2);
 SoftwareSerial myCoffeemaker(4,5); // RX, TX
@@ -50,6 +53,14 @@ SoftwareSerial myBT(7,6);
 #endif
 PN532_SPI pn532spi(SPI, 10);
 PN532 nfc(pn532spi);
+
+#if defined(NET)
+byte my_mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x60, 0xC5 };
+byte my_ip[] = { 10,22,36,160 };
+byte loghost[] = { 10,22,0,13 };
+//byte gateway[] = { 192, 168, 26, 251 };   //your router's IP address
+byte subnet[] = { 255, 255, 0, 0 };    //subnet mask of the network 
+#endif
 
 // product codes send by coffeemaker "?PA<x>\r\n", just <x>
 char products[] = "EFABJIG";
@@ -129,6 +140,12 @@ void setup()
   // configure service button
 #if defined(SERVICEBUT)
   pinMode(SERVICEBUT,INPUT);
+#endif
+#if defined(NET)
+  Ethernet.begin(my_mac, my_ip);
+  Serial.begin(9600);
+  Syslog.setLoghost(loghost);
+  Syslog.logger(1,5,"s","s");
 #endif
   message_print(F("Ready to brew"), F(""), 2000);
 }
