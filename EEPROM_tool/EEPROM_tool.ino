@@ -3,12 +3,12 @@
 
 SoftwareSerial myCoffeemaker(4,5); // RX, TX
 
-long int cardNr;
+unsigned long cardNr;
 
 
 union{
   byte cardByte[4];
-  long int cardNr;
+  unsigned long cardNr;
 } 
 cardConvert;
 
@@ -230,7 +230,7 @@ String printCredit(int credit){
   return output;
 }
 
-String print10digits(long int number) {
+String print10digits(unsigned long number) {
   String(tempString) = String(number);
   String(newString) = "";
   int i = 10-tempString.length();
