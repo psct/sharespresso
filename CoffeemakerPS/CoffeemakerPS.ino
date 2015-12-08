@@ -22,6 +22,8 @@
 
 // compile time configuration options
 #define BUZZER 1
+#define BUZPIN 9
+#define SERVICEBUT 8
 #define BT 1
 #define LCD 1
 #define SERLOG 1
@@ -81,6 +83,8 @@ union{
 } 
 cardConvert;
 
+int inservice=0;
+
 union{
   byte creditByte[2];
   int creditInt;
@@ -127,22 +131,32 @@ void setup()
   // configure board to read RFID tags and cards
   nfc.SAMConfig();
   nfc.setPassiveActivationRetries(0x80);
+  // configure service button
+#if defined(SERVICEBUT)
+  pinMode(SERVICEBUT,INPUT);
+#endif
   message_print(F("Ready to brew"), F(""), 2000);
 }
 
 void loop()
 {
   serlog(F("Entering loop")); 
+
+#if defined(SERVICEBUT)
+  if ( digitalRead(SERVICEBUT) == HIGH) {
+    servicetoggle();
+  }
+#endif
+  
   // Check if there is a bluetooth connection and command
   BTstring = "";
   //  buttonPress = false;
   // handle serial and bluetooth input
 #if defined(BT)
-  myBT.listen();
-  while( myBT.available()) {
-    BTstring +=String(char(myBT.read()));
-    delay(7);
-  }
+    while( myBT.available()) {
+      BTstring +=String(char(myBT.read()));
+      delay(7);
+    }
 #endif
   while( Serial.available() ){  
     BTstring += String(char(Serial.read()));
@@ -237,7 +251,7 @@ void loop()
         if (i < 10) myBT.write(',');
 #endif
       }
-    }  
+    } 
 
     if(BTstring == "?M3"){  
       toCoffeemaker("?M3\r\n");  // activates incasso mode (= no coffee w/o "ok" from the payment system! May be inactivated by sending "?M3" without quotation marks)
@@ -321,7 +335,7 @@ void loop()
   if (millis()-buttonTime > 5000){  
     buttonPress = false;
     price = 0;
-    message_clear();
+    //message_clear();
     serlog(F("Timeout getting keypress on machine"));     
   }
   if (buttonPress == true && override == true){
@@ -508,27 +522,27 @@ void beep(byte number){
   int duration = 200;
   switch (number) {
   case 1: // positive feedback
-    tone(12,1500,duration);
+    tone(BUZPIN,1500,duration);
     delay(duration);
     break;
   case 2: // negative feedback
-    tone(12,500,duration);
+    tone(BUZPIN,500,duration);
     delay(duration);
     break;     
   case 3:  // action stopped (e.g. registering) double beep
-    tone(12,1000,duration);
+    tone(BUZPIN,1000,duration);
     delay(duration);
-    tone(12,1500,duration);
+    tone(BUZPIN,1500,duration);
     delay(duration);    
     break; 
   case 4:  // alarm (for whatever)
     for (int a = 0; a < 3; a++){
       for (int i = 2300; i > 600; i-=50){
-        tone(12,i,20);
+        tone(BUZPIN,i,20);
         delay(18);
       }     
       for (int i = 600; i < 2300; i+=50){
-        tone(12,i,20);
+        tone(BUZPIN,i,20);
         delay(18);
       }
     }  
@@ -604,13 +618,16 @@ unsigned long nfcidread(void) {
   return id;
 }
 
-
-
-
-
-
-
-
+void servicetoggle(void){
+    inservice=not(inservice);
+    if ( inservice) {
+      message_print(F("Service Mode"),F("started"),0);
+      myBT.listen();
+    } else {
+      message_print(F("Service Mode"),F("exited"),2000);
+      myCoffeemaker.listen();
+    }
+}
 
 
 
