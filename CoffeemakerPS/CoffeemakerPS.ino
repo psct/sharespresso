@@ -27,6 +27,7 @@
 #define BT 1
 #define LCD 1
 #define SERLOG 1
+//#define DEBUG 1
 //#define RFID 1
 //#define NET 1
 
@@ -108,7 +109,9 @@ void setup()
 #if defined(BT)
   myBT.begin(38400);
 #endif
+#if defined(DEBUG)
   serlog(F("Reading EEPROM data"));
+#endif
   for (int i = 0; i < n; i++){  // read card numbers and referring credit from EEPROM
     cardConvert.cardByte[0] = EEPROM.read(i*6);
     cardConvert.cardByte[1] = EEPROM.read(i*6+1);
@@ -125,11 +128,15 @@ void setup()
     priceArray[i] = creditConvert.creditInt;
   }
   // initialized rfid lib
+#if defined(DEBUG)
   serlog(F("Initializing rfid reader"));
+#endif
   nfc.begin();
   uint32_t versiondata = nfc.getFirmwareVersion();
   if (! versiondata) {
+ #if defined(DEBUG)
     serlog(F("Didn't find PN53x board"));
+ #endif
  #if defined(RFID)
     while (1); // halt
  #endif
@@ -152,8 +159,9 @@ void setup()
 
 void loop()
 {
+#if defined(DEBUG)
   serlog(F("Entering loop")); 
-
+#endif
 #if defined(SERVICEBUT)
   if ( digitalRead(SERVICEBUT) == HIGH) {
     servicetoggle();
@@ -178,7 +186,9 @@ void loop()
   
   if (BTstring.length() > 0){
     // BT: Start registering new cards until 10 s no valid, unregistered card
+#if defined(DEBUG)
     serlog(BTstring);
+#endif
     if( BTstring == "RRR" ){          
       time = millis();
       beep(1);
@@ -286,7 +296,9 @@ void loop()
   }          
 
   // Get key pressed on coffeemaker
+#if defined(DEBUG)
   serlog(F("Reading Coffeemaker"));
+#endif
   String message = fromCoffeemaker();   // gets answers from coffeemaker 
   if (message.length() > 0){
     if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
@@ -315,7 +327,9 @@ void loop()
       } 
       else {
         message_print(F("Error reading"), F("from coffeemaker"), 2000);
+#if defined(DEBUG)
         serlog(F("Read error"));
+#endif
         buttonPress = false;
       }
       // boss mode, he does not pay
@@ -328,7 +342,9 @@ void loop()
     buttonPress = false;
     price = 0;
     //message_clear();
+#if defined(DEBUG)
     serlog(F("Timeout getting keypress on machine"));     
+#endif
   }
   if (buttonPress == true && override == true){
     toCoffeemaker("?ok\r\n");
@@ -383,7 +399,9 @@ void loop()
       message_print(String(print10digits(RFIDcard)),F("card unknown!"),2000);
     }     	    
   }
+#if defined(DEBUG)
   serlog(F("Exiting loop"));
+#endif
 }
 
 String fromCoffeemaker(){
@@ -591,7 +609,9 @@ void registernewcards() {
       time = millis();
     }
   } while ( (millis()-time) < 10000 );
+#if defined(DEBUG)
   serlog(F("Registering ended"));
+#endif
   beep(3);  
 }
 
