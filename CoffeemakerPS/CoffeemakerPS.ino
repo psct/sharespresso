@@ -28,7 +28,7 @@
 #define LCD 1
 #define SERLOG 1
 //#define RFID 1
-#define NET 1
+//#define NET 1
 
 #include <Wire.h>
 #include <SoftwareSerial.h>
@@ -43,8 +43,8 @@
 // https://github.com/Seeed-Studio/PN532
 #include <PN532_SPI.h>
 #include <PN532.h>
-#include <Ethernet.h>
-#include <Syslog.h>
+//#include <Ethernet.h>
+//#include <Syslog.h>
 
 LiquidCrystal_I2C lcd(0x20,16,2);
 SoftwareSerial myCoffeemaker(4,5); // RX, TX
