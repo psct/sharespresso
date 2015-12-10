@@ -22,8 +22,9 @@
 
 // compile time configuration options
 #define BUZZER 1
-#define BUZPIN 9
-#define SERVICEBUT 8
+//#define SERVICEBUT 8
+#define BUZPIN 8
+#define PN532_SS 9
 #define BT 1
 #define LCD 1
 #define SERLOG 1
@@ -53,7 +54,7 @@ SoftwareSerial myCoffeemaker(4,5); // RX, TX
 #if defined(BT)
 SoftwareSerial myBT(7,6);
 #endif
-PN532_SPI pn532spi(SPI, 10);
+PN532_SPI pn532spi(SPI, PN532_SS);
 PN532 nfc(pn532spi);
 
 #if defined(NET)
