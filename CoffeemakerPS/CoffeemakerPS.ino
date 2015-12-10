@@ -27,7 +27,8 @@
 #define BT 1
 #define LCD 1
 #define SERLOG 1
-//#define DEBUG 1
+#define DEBUG 1
+#define MEMDEBUG 1
 //#define RFID 1
 //#define NET 1
 
@@ -101,6 +102,9 @@ void setup()
 #if defined(SERLOG)
   Serial.begin(9600);
 #endif
+#if defined(MEMDEBUG)
+  Serial.println(free_ram());
+#endif
 #if defined(LCD)
   lcd.init();
 #endif
@@ -155,6 +159,9 @@ void setup()
   Syslog.logger(1,5,"s","s");
 #endif
   message_print(F("Ready to brew"), F(""), 2000);
+#if defined(MEMDEBUG)
+  Serial.println(free_ram());
+#endif
 }
 
 void loop()
@@ -673,7 +680,12 @@ void inkasso_off(void){
   }
 }
 
-
-
+#if defined(MEMDEBUG)
+int free_ram(void) { 
+  extern int __heap_start, *__brkval; 
+  int v; 
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+}
+#endif
 
 
