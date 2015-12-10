@@ -148,14 +148,14 @@ void setup()
   }
   // configure board to read RFID tags and cards
   nfc.SAMConfig();
-  nfc.setPassiveActivationRetries(0x80);
+  nfc.setPassiveActivationRetries(0xfe);
   // configure service button
 #if defined(SERVICEBUT)
   pinMode(SERVICEBUT,INPUT);
 #endif
+  Serial.begin(9600);
 #if defined(NET)
   Ethernet.begin(my_mac, my_ip, my_gateway, my_subnet);
-  Serial.begin(9600);
   Syslog.setLoghost(my_loghost);
   Syslog.logger(1,5,"s","s");
 #endif
@@ -169,6 +169,9 @@ void loop()
 {
 #if defined(DEBUG)
   serlog(F("Entering loop")); 
+#endif
+#if defined(MEMDEBUG)
+  Serial.println(free_ram());
 #endif
 #if defined(SERVICEBUT)
   if ( digitalRead(SERVICEBUT) == HIGH) {
