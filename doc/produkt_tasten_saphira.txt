@@ -1,0 +1,12 @@
+
+von oben links nach unten rechts
+
+Beschriftung, Anzeige, Preis
+
+Cappuccino, Large Cup, 3 Euro
+Espresso, 2 Large Cups, 4 Euro
+2 Espresso, Error Reading From Coffeemaker, ???
+Milchkaffee, Error Reading From Coffeemaker, ???
+Kaffee, Error Reading From Coffeemaker, ???
+Kaffee groﬂ, Small Cup, 1 Euro
+
