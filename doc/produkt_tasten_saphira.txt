@@ -3,10 +3,16 @@ von oben links nach unten rechts
 
 Beschriftung, Anzeige, Preis
 
-Cappuccino, Large Cup, 3 Euro
-Espresso, 2 Large Cups, 4 Euro
-2 Espresso, Error Reading From Coffeemaker, ???
-Milchkaffee, Error Reading From Coffeemaker, ???
-Kaffee, Error Reading From Coffeemaker, ???
-Kaffee groﬂ, Small Cup, 1 Euro
+PAA,Cappuccino, Large Cup, 3 Euro
+PAB,Espresso, 2 Large Cups, 4 Euro
+PAC,2 Espresso, Error Reading From Coffeemaker, ???
+PAH,Milchkaffee, Error Reading From Coffeemaker, ???
+PAD,Kaffee, Error Reading From Coffeemaker, ???
+PAE,Kaffee groﬂ, Small Cup, 1 Euro
+
+PAK, Linke Dampftaste
+PAJ, Rechte Dampftaste
+PAF, Milchk‰nnchen hinterm Deckel
+PAG, Latte hinterm Deckel
+
 
