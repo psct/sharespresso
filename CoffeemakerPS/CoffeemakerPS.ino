@@ -54,6 +54,7 @@ SoftwareSerial myCoffeemaker(4,5); // RX, TX
 #if defined(BT)
 SoftwareSerial myBT(7,6);
 #endif
+SPISettings nfc_settings(SPI_CLOCK_DIV8, LSBFIRST, SPI_MODE0);
 PN532_SPI pn532spi(SPI, PN532_SS);
 PN532 nfc(pn532spi);
 
@@ -61,7 +62,7 @@ PN532 nfc(pn532spi);
 byte my_mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x60, 0xC5 };
 byte my_ip[] = { 10,22,36,160 };
 byte my_loghost[] = { 10,22,0,13 };
-byte my_gateway[] = { 10, 22, 0, 2511 };   //your router's IP address
+byte my_gateway[] = { 10, 22, 0, 1 };   //your router's IP address
 byte my_subnet[] = { 255, 255, 0, 0 };    //subnet mask of the network 
 #endif
 
@@ -136,6 +137,7 @@ void setup()
 #if defined(DEBUG)
   serlog(F("Initializing rfid reader"));
 #endif
+  SPI.beginTransaction(nfc_settings);
   nfc.begin();
   uint32_t versiondata = nfc.getFirmwareVersion();
   if (! versiondata) {
@@ -149,6 +151,7 @@ void setup()
   // configure board to read RFID tags and cards
   nfc.SAMConfig();
   nfc.setPassiveActivationRetries(0xfe);
+  SPI.endTransaction();
   // configure service button
 #if defined(SERVICEBUT)
   pinMode(SERVICEBUT,INPUT);
@@ -632,8 +635,10 @@ unsigned long nfcidread(void) {
   uint8_t uidLength;
   unsigned long id=0;
 
+  SPI.beginTransaction(nfc_settings);
   success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
-
+  SPI.endTransaction();
+  
   if (success) {
     // ugly hack: fine for mifare classic (4 byte)
     // also fine for our ultras (last 4 bytes ever the same)
