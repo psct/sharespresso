@@ -63,6 +63,7 @@ byte my_mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x60, 0xC5 };
 byte my_ip[] = { 10,22,36,160 };
 byte my_loghost[] = { 10,22,0,13 };
 byte my_gateway[] = { 10, 22, 0, 1 };   //your router's IP address
+byte my_dns[] = { 10,10,10,32 };
 byte my_subnet[] = { 255, 255, 0, 0 };    //subnet mask of the network 
 #endif
 
@@ -159,9 +160,9 @@ void setup()
 #endif
   Serial.begin(9600);
 #if defined(NET)
-  Ethernet.begin(my_mac, my_ip, my_gateway, my_subnet);
+  Ethernet.begin(my_mac, my_ip, my_dns, my_gateway, my_subnet);
   Syslog.setLoghost(my_loghost);
-  Syslog.logger(1,5,"s","s");
+  Syslog.logger(1,5,"sharespresso","Hello world!");
 #endif
   message_print(F("Ready to brew"), F(""), 2000);
 #if defined(MEMDEBUG)
