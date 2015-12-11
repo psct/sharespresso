@@ -137,6 +137,7 @@ void setup()
 #if defined(DEBUG)
   serlog(F("Initializing rfid reader"));
 #endif
+  SPI.begin();
   SPI.beginTransaction(nfc_settings);
   nfc.begin();
   uint32_t versiondata = nfc.getFirmwareVersion();
