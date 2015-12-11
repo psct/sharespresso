@@ -316,6 +316,7 @@ void loop()
 #endif
   String message = fromCoffeemaker();   // gets answers from coffeemaker 
   if (message.length() > 0){
+    serlog( message);
     if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
       buttonPress = true;
       buttonTime = millis();
