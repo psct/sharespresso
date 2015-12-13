@@ -24,7 +24,6 @@
 #define BUZZER 1
 //#define SERVICEBUT 8
 #define BUZPIN 8
-#define PN532_SS 9
 #define BT 1
 #define LCD 1
 #define SERLOG 1
@@ -32,6 +31,11 @@
 #define MEMDEBUG 1
 //#define RFID 1
 #define NET 1
+#define USE_PN532 1
+
+#if defined(USE_PN532)
+#define PN532_SS 9
+#endif
 
 #include <Wire.h>
 #include <SoftwareSerial.h>
@@ -54,9 +58,12 @@ SoftwareSerial myCoffeemaker(4,5); // RX, TX
 #if defined(BT)
 SoftwareSerial myBT(7,6);
 #endif
+
+#if defined(USE_PN532)
 SPISettings nfc_settings(SPI_CLOCK_DIV8, LSBFIRST, SPI_MODE0);
 PN532_SPI pn532spi(SPI, PN532_SS);
 PN532 nfc(pn532spi);
+#endif
 
 #if defined(NET)
 byte my_mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x60, 0xC5 };
@@ -139,6 +146,7 @@ void setup()
   serlog(F("Initializing rfid reader"));
 #endif
   SPI.begin();
+#if defined(USE_PN532)  
   SPI.beginTransaction(nfc_settings);
   nfc.begin();
   uint32_t versiondata = nfc.getFirmwareVersion();
@@ -146,14 +154,17 @@ void setup()
  #if defined(DEBUG)
     serlog(F("Didn't find PN53x board"));
  #endif
+ #endif
  #if defined(RFID)
     while (1); // halt
  #endif
   }
   // configure board to read RFID tags and cards
+#if defined(USE_PN532)
   nfc.SAMConfig();
   nfc.setPassiveActivationRetries(0xfe);
   SPI.endTransaction();
+#endif
   // configure service button
 #if defined(SERVICEBUT)
   pinMode(SERVICEBUT,INPUT);
@@ -638,9 +649,11 @@ unsigned long nfcidread(void) {
   uint8_t uidLength;
   unsigned long id=0;
 
+#if defined(USE_PN532)
   SPI.beginTransaction(nfc_settings);
   success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
   SPI.endTransaction();
+#endif
   
   if (success) {
     // ugly hack: fine for mifare classic (4 byte)
