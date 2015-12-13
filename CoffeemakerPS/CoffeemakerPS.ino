@@ -51,7 +51,7 @@
 // https://github.com/Seeed-Studio/PN532
 //#include <PN532_SPI.h>
 //#include <PN532.h>
-// Alternative rfid-rc522
+// Alternative rfid-rc522 (ist schmaler als pn532!)
 // Bibliothek von https://github.com/miguelbalboa/rfid.git
 #include <MFRC522.h>
 #include <Ethernet.h>
