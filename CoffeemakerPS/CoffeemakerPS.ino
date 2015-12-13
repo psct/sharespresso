@@ -23,15 +23,16 @@
 // compile time configuration options
 #define BUZZER 1
 //#define SERVICEBUT 8
-#define BUZPIN 8
+#define BUZPIN 3
 #define BT 1
 #define LCD 1
 #define SERLOG 1
 #define DEBUG 1
-#define MEMDEBUG 1
+//#define MEMDEBUG 1
 //#define RFID 1
 #define NET 1
-#define USE_PN532 1
+//#define USE_PN532 1
+#define USE_MFRC522 1
 
 #if defined(USE_PN532)
 #define PN532_SS 9
@@ -48,8 +49,11 @@
 // #include <Adafruit_PN532.h>
 // Deshalb die Seeed-Studio-Variante:
 // https://github.com/Seeed-Studio/PN532
-#include <PN532_SPI.h>
-#include <PN532.h>
+//#include <PN532_SPI.h>
+//#include <PN532.h>
+// Alternative rfid-rc522
+// Bibliothek von https://github.com/miguelbalboa/rfid.git
+#include <MFRC522.h>
 #include <Ethernet.h>
 #include <Syslog.h>
 
@@ -63,6 +67,12 @@ SoftwareSerial myBT(7,6);
 SPISettings nfc_settings(SPI_CLOCK_DIV8, LSBFIRST, SPI_MODE0);
 PN532_SPI pn532spi(SPI, PN532_SS);
 PN532 nfc(pn532spi);
+#endif
+
+#if defined(USE_MFRC522)
+#define RST_PIN 8
+#define SS_PIN 9
+MFRC522 mfrc522(SS_PIN, RST_PIN);
 #endif
 
 #if defined(NET)
@@ -151,14 +161,18 @@ void setup()
   nfc.begin();
   uint32_t versiondata = nfc.getFirmwareVersion();
   if (! versiondata) {
- #if defined(DEBUG)
+#if defined(DEBUG)
     serlog(F("Didn't find PN53x board"));
- #endif
- #endif
- #if defined(RFID)
+#endif
+#if defined(RFID)
     while (1); // halt
- #endif
+#endif
   }
+#endif
+#if defined(USE_MFRC522)
+  mfrc522.PCD_Init(SS_PIN,RST_PIN);
+  ShowReaderDetails();
+#endif
   // configure board to read RFID tags and cards
 #if defined(USE_PN532)
   nfc.SAMConfig();
@@ -184,7 +198,7 @@ void setup()
 void loop()
 {
 #if defined(DEBUG)
-  serlog(F("Entering loop")); 
+//  serlog(F("Entering loop")); 
 #endif
 #if defined(MEMDEBUG)
   Serial.println(free_ram());
@@ -193,8 +207,7 @@ void loop()
   if ( digitalRead(SERVICEBUT) == HIGH) {
     servicetoggle();
   }
-#endif
-  
+#endif  
   // Check if there is a bluetooth connection and command
   BTstring = "";
   //  buttonPress = false;
@@ -324,7 +337,7 @@ void loop()
 
   // Get key pressed on coffeemaker
 #if defined(DEBUG)
-  serlog(F("Reading Coffeemaker"));
+//  serlog(F("Reading Coffeemaker"));
 #endif
   String message = fromCoffeemaker();   // gets answers from coffeemaker 
   if (message.length() > 0){
@@ -371,7 +384,7 @@ void loop()
     price = 0;
     //message_clear();
 #if defined(DEBUG)
-    serlog(F("Timeout getting keypress on machine"));     
+//    serlog(F("Timeout getting keypress on machine"));     
 #endif
   }
   if (buttonPress == true && override == true){
@@ -428,7 +441,7 @@ void loop()
     }     	    
   }
 #if defined(DEBUG)
-  serlog(F("Exiting loop"));
+//  serlog(F("Exiting loop"));
 #endif
 }
 
@@ -644,16 +657,15 @@ void registernewcards() {
 }
 
 unsigned long nfcidread(void) {
+  unsigned long id=0;
+#if defined(USE_PN532)
   uint8_t success;
   uint8_t uid[] = { 0,0,0,0,0,0,0,0 };
   uint8_t uidLength;
-  unsigned long id=0;
 
-#if defined(USE_PN532)
   SPI.beginTransaction(nfc_settings);
   success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
   SPI.endTransaction();
-#endif
   
   if (success) {
     // ugly hack: fine for mifare classic (4 byte)
@@ -665,6 +677,21 @@ unsigned long nfcidread(void) {
     id += (unsigned long)uid[3];
   }
   return id;
+#endif
+#if defined(USE_MFRC522)
+  if ( mfrc522.PICC_IsNewCardPresent()) {
+    serlog(F("Found card"));
+    if ( mfrc522.PICC_ReadCardSerial()) {
+      serlog(F("Read id"));
+      id = (unsigned long)mfrc522.uid.uidByte[0]<<24;
+      id += (unsigned long)mfrc522.uid.uidByte[1]<<16;
+      id += (unsigned long)mfrc522.uid.uidByte[2]<<8;
+      id += (unsigned long)mfrc522.uid.uidByte[3];
+      return id;
+    }
+  }
+  return 0;
+#endif
 }
 
 void servicetoggle(void){
@@ -713,4 +740,23 @@ int free_ram(void) {
 }
 #endif
 
+#if defined(USE_MFRC522)
+void ShowReaderDetails() {
+  // Get the MFRC522 software version
+  byte v = mfrc522.PCD_ReadRegister(mfrc522.VersionReg);
+  Serial.print(F("MFRC522 Software Version: 0x"));
+  Serial.print(v, HEX);
+  if (v == 0x91)
+    Serial.print(F(" = v1.0"));
+  else if (v == 0x92)
+    Serial.print(F(" = v2.0"));
+  else
+    Serial.print(F(" (unknown)"));
+  Serial.println("");
+  // When 0x00 or 0xFF is returned, communication probably failed
+  if ((v == 0x00) || (v == 0xFF)) {
+    Serial.println(F("WARNING: Communication failure, is the MFRC522 properly connected?"));
+  }
+}
+#endif
 
