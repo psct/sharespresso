@@ -38,6 +38,9 @@
 #define PN532_SS 9
 #endif
 
+// card to enter/exit service mode
+#define MASTERCARD 73042346
+
 #include <Wire.h>
 #include <SoftwareSerial.h>
 #include <LiquidCrystal_I2C.h>
@@ -378,7 +381,7 @@ void loop()
   time = millis(); 
   do {
     RFIDcard = nfcidread();
-    if (RFIDcard == 73042346) {
+    if (RFIDcard == MASTERCARD) {
       servicetoggle();
       delay(60);
       RFIDcard= 0;
@@ -597,6 +600,9 @@ void registernewcards() {
     } while ( (millis()-time) < 60 );  
     int k = 255;
     if (RFIDcard != 0) {
+      if ( RFIDcard == MASTERCARD) {
+        break;
+      }
       for(int i=0;i<n;i++){
         if (RFIDcard == EEPROM.readLong(i*6)) {
           message_print(print10digits(RFIDcard), F("already exists"), 0);
