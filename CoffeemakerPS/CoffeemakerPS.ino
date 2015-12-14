@@ -60,7 +60,7 @@
 #include <Ethernet.h>
 #include <Syslog.h>
 
-LiquidCrystal_I2C lcd(0x20,16,2);
+LiquidCrystal_I2C lcd(0x27,16,2);
 SoftwareSerial myCoffeemaker(4,5); // RX, TX
 #if defined(BT)
 SoftwareSerial myBT(7,6);
