@@ -85,7 +85,14 @@ byte my_subnet[] = { 255, 255, 0, 0 };    //subnet mask of the network
 #endif
 
 // product codes send by coffeemaker "?PA<x>\r\n", just <x>
+//#define S95 1 // s95
+#define X7 1 // x7/sphira
+#if defined(S95)
 char products[] = "EFABJIG";
+#endif
+#if defined(X7)
+char products[] = "ABCHDEKJFG";
+#endif
 
 // general variables
 boolean buttonPress = false;
@@ -96,7 +103,6 @@ unsigned long buttonTime;  // timer for button press
 boolean override = false;  // to override payment system by the voice-control/button-press app
 
 unsigned long RFIDcard = 0;
-
 int inservice=0;
 
 void setup()
@@ -317,6 +323,7 @@ void loop()
       if ( product != 255) {
         String productname;
           switch (product) {
+#if defined(S95)
             case 0: productname = F("Small cup"); break;
             case 1: productname = F("2 small cups"); break;
             case 2: productname = F("Large cup"); break;
@@ -324,12 +331,24 @@ void loop()
             case 4: productname = F("Steam 2"); break;
             case 5: productname = F("Steam 1"); break;
             case 6: productname = F("Extra large cup"); break;
+#endif
+#if defined(X7)
+            case 0: productname = F("Cappuccino"); break;
+            case 1: productname = F("Espresso"); break;
+            case 2: productname = F("Espresso dopio"); break;
+            case 3: productname = F("Milchkaffee"); break;
+            case 4: productname = F("Kaffee"); break;
+            case 5: productname = F("Dampf links"); break;
+            case 6: productname = F("Dampf rechts"); break;
+            case 7: productname = F("Portion Milch"); break;
+            case 8: productname = F("Caffee Latte"); break;
+#endif
           }
         price = EEPROM.readInt(product* 2+ 1000);
         message_print(productname, printCredit(price), 0);
       } 
       else {
-        message_print(F("Error reading"), F("from coffeemaker"), 2000);
+        message_print(F("Error unknown"), F("product"), 2000);
 #if defined(DEBUG)
         serlog(F("Read error"));
 #endif
