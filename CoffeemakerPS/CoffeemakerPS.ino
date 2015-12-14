@@ -41,7 +41,7 @@
 #include <Wire.h>
 #include <SoftwareSerial.h>
 #include <LiquidCrystal_I2C.h>
-#include <EEPROM.h>
+#include <EEPROMex.h>
 #include <SPI.h>
 // Das Adfruit-Teil taugt nicht
 // teils blockieren Aufrufe
@@ -90,35 +90,20 @@ char products[] = "EFABJIG";
 // general variables
 boolean buttonPress = false;
 const int n = 40;  // max total number of cards with access (up to 200 cards max = 199! Do not exceed otherwise you will overwrite price list!)
-int creditArray[n] = {      // remaining credit on card
-}; 
-int price;           // price variable
-int priceArray[11];  // price Array contains prices for up to 10 products. 0 = PAA, 1 = PAB usw. Plus standard value for new cards
 String BTstring="";  // contains what is received via bluetooth (from app or other bt client)
 unsigned long time;  // timer for RFID etc
 unsigned long buttonTime;  // timer for button press 
 boolean override = false;  // to override payment system by the voice-control/button-press app
 
 unsigned long RFIDcard = 0;
-unsigned long RFIDcards[n] = {
-}; 
-
-union{
-  byte cardByte[4];
-  unsigned long cardNr;
-} 
-cardConvert;
 
 int inservice=0;
 
-union{
-  byte creditByte[2];
-  int creditInt;
-} 
-creditConvert;
-
 void setup()
 {
+#if defined(DEBUG)
+  EEPROM.setMaxAllowedWrites(100);
+#endif
 #if defined(SERLOG)
   Serial.begin(9600);
 #endif
@@ -133,24 +118,6 @@ void setup()
 #if defined(BT)
   myBT.begin(38400);
 #endif
-#if defined(DEBUG)
-  serlog(F("Reading EEPROM data"));
-#endif
-  for (int i = 0; i < n; i++){  // read card numbers and referring credit from EEPROM
-    cardConvert.cardByte[0] = EEPROM.read(i*6);
-    cardConvert.cardByte[1] = EEPROM.read(i*6+1);
-    cardConvert.cardByte[2] = EEPROM.read(i*6+2);
-    cardConvert.cardByte[3] = EEPROM.read(i*6+3);
-    RFIDcards[i]  = cardConvert.cardNr;  // union to put the four bytes together
-    creditConvert.creditByte[0] = EEPROM.read(i*6+4);
-    creditConvert.creditByte[1] = EEPROM.read(i*6+5);
-    creditArray[i] = creditConvert.creditInt;
-  }
-  for (int i = 0; i < 11; i++){   // read price list products 1 to 10 and start value for new cards
-    creditConvert.creditByte[0] = EEPROM.read(i*2+1000);
-    creditConvert.creditByte[1] = EEPROM.read(i*2+1001);
-    priceArray[i] = creditConvert.creditInt;
-  }
   // initialized rfid lib
 #if defined(DEBUG)
   serlog(F("Initializing rfid reader"));
@@ -183,7 +150,6 @@ void setup()
 #if defined(SERVICEBUT)
   pinMode(SERVICEBUT,INPUT);
 #endif
-  Serial.begin(9600);
 #if defined(NET)
   Ethernet.begin(my_mac, my_ip, my_dns, my_gateway, my_subnet);
   Syslog.setLoghost(my_loghost);
@@ -197,6 +163,7 @@ void setup()
 
 void loop()
 {
+  int price= 0;
 #if defined(DEBUG)
 //  serlog(F("Entering loop")); 
 #endif
@@ -240,7 +207,8 @@ void loop()
     if(BTstring == "LLL"){  // 'L' for 'list' sends RFID card numbers to app   
       for(int i=0;i<n;i++){
 #if defined(BT)
-        myBT.print(print10digits(RFIDcards[i])); 
+        unsigned long card=EEPROM.readLong(i*6);
+        myBT.print(print10digits(card)); 
         if (i < (n-1)) myBT.write(',');  // write comma after card number if not last
 #endif
       }
@@ -249,16 +217,12 @@ void loop()
     if(BTstring.startsWith("DDD") == true){
       BTstring.remove(0,3); // removes "DDD" and leaves the index
       int i = BTstring.toInt();
-      i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0       
-      message_print(print10digits(RFIDcards[i]), F("deleting"), 2000);
-      EEPROM.write(i*6, 0);    // writes card number (4 bytes)
-      EEPROM.write(i*6+1, 0);
-      EEPROM.write(i*6+2, 0);
-      EEPROM.write(i*6+3, 0);
-      EEPROM.write(i*6+4, 0);  // writes credit (2 bytes)
-      EEPROM.write(i*6+5, 0);
+      i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0
+      unsigned long card= EEPROM.readLong(i*6);       
+      message_print(print10digits(card), F("deleting"), 2000);
+      EEPROM.updateLong(i*6, 0);
+      EEPROM.updateInt(i*6+2, 0);
       beep(1);
-      RFIDcards[i] = 0;
     }    
     // BT: Charge a card    
     if((BTstring.startsWith("CCC") == true) ){  // && (BTstring.length() >= 7 )
@@ -272,12 +236,12 @@ void loop()
       int j = BTstring.toInt();   // value to charge
       j *= 100;
       i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0  
-      creditArray[i] += j;
-      creditConvert.creditInt = creditArray[i];     
-      EEPROM.write(i*6+4, creditConvert.creditByte[0]);
-      EEPROM.write(i*6+5, creditConvert.creditByte[1]); 
+      int credit= EEPROM.readInt(i*6+4);
+      credit+= j;
+      EEPROM.writeInt(i*6+4, credit);
       beep(1);
-      message_print(print10digits((RFIDcards[i])-j),"+"+printCredit(j),2000);
+      unsigned long card=EEPROM.readLong(i*6);
+      message_print(print10digits(card),"+"+printCredit(j),2000);
     }
     // BT: Receives (updated) price list from app.  
     if(BTstring.startsWith("CHA") == true){
@@ -290,10 +254,7 @@ void loop()
         } 
         while (BTstring.charAt(k) != ','); 
         int j = tempString.toInt();
-        priceArray[i] = j;
-        creditConvert.creditInt = j;
-        EEPROM.write(i*2+1000, creditConvert.creditByte[0]);
-        EEPROM.write(i*2+1001, creditConvert.creditByte[1]);
+        EEPROM.updateInt(i*2+1000, j);
         k++;
       }
       beep(1);
@@ -304,12 +265,13 @@ void loop()
       // delay(100); // testweise      
       for (int i = 0; i < 11; i++) {
 #if defined(BT)
-        myBT.print(int(priceArray[i]/100));
+        price= EEPROM.readInt(1000+i*2);
+        myBT.print(int(price/100));
         myBT.print('.');
-        if ((priceArray[i]%100) < 10){
+        if ((price%100) < 10){
           myBT.print('0');
         }
-        myBT.print(priceArray[i]%100);
+        myBT.print(price%100);
         if (i < 10) myBT.write(',');
 #endif
       }
@@ -363,7 +325,7 @@ void loop()
             case 5: productname = F("Steam 1"); break;
             case 6: productname = F("Extra large cup"); break;
           }
-        price = priceArray[product];
+        price = EEPROM.readInt(product* 2+ 1000);
         message_print(productname, printCredit(price), 0);
       } 
       else {
@@ -412,24 +374,22 @@ void loop()
   if (RFIDcard != 0){
     int k = n;
     for(int i=0;i<n;i++){         
-      if (((RFIDcard) == (RFIDcards[i])) && (RFIDcard != 0 )){
+      if (((RFIDcard) == (EEPROM.readLong(i*6))) && (RFIDcard != 0 )){
         k = i;
+        int credit= EEPROM.readInt(k*6+4);
         if(buttonPress == true){                 // button pressed on coffeemaker?
-          if ((creditArray[k] - price) > 0){     // enough credit?
-            creditArray[k] -= price;
-            message_print(print10digits(RFIDcards[k])+ printCredit(creditArray[k]), F(" "), 0);
-            creditConvert.creditInt = creditArray[k];
-            EEPROM.write(k*6+4, creditConvert.creditByte[0]);
-            EEPROM.write(k*6+5, creditConvert.creditByte[1]);
+           if ((credit - price) > 0) {
+            message_print(print10digits(RFIDcard)+ printCredit(credit), F(" "), 0);
+            EEPROM.writeInt(k*6+4, ( credit- price));
             toCoffeemaker("?ok\r\n");            // prepare coffee
           } 
-          else {                                 // not enough credit!
+          else {
             beep(2);
-            message_print(printCredit(creditArray[k]), F("Not enough credit "), 2000);  
+            message_print(printCredit(credit), F("Not enough credit "), 2000); 
           }
         } 
         else {                                // if no button was pressed on coffeemaker / check credit
-          message_print(printCredit(creditArray[k]), F("Remaining credit"), 2000);      
+          message_print(printCredit(credit), F("Remaining credit"), 2000);      
         }
         i = n;      // leave loop (after card has been identified)
       }      
@@ -619,13 +579,13 @@ void registernewcards() {
     int k = 255;
     if (RFIDcard != 0) {
       for(int i=0;i<n;i++){
-        if (RFIDcard == RFIDcards[i]) {
+        if (RFIDcard == EEPROM.readLong(i*6)) {
           message_print(print10digits(RFIDcard), F("already exists"), 0);
           beep(2);
           k=254;         
           break;
         }
-        if ((RFIDcards[i] == 0) && (k == 255)) { // find first empty slot
+        if ((EEPROM.readLong(i*6) == 0) && (k == 255)) { // find first empty slot
           k=i;
         }
       }
@@ -634,17 +594,10 @@ void registernewcards() {
         break;
       }
       if ( k != 254) {
-        RFIDcards[k] = RFIDcard;
         message_print( print10digits(RFIDcard), F("registered"),0);
-        cardConvert.cardNr = RFIDcard;
-        EEPROM.write(k*6, cardConvert.cardByte[0]);
-        EEPROM.write(k*6+1, cardConvert.cardByte[1]);
-        EEPROM.write(k*6+2, cardConvert.cardByte[2]);
-        EEPROM.write(k*6+3, cardConvert.cardByte[3]);
-        creditArray[k] = priceArray[10]; // standard credit for newly registered cards          
-        creditConvert.creditInt = creditArray[k];
-        EEPROM.write(k*6+4, creditConvert.creditByte[0]);  
-        EEPROM.write(k*6+5, creditConvert.creditByte[1]);
+        int credit= EEPROM.readInt(1000+2*10);
+        EEPROM.updateLong(k*6, RFIDcard);
+        EEPROM.updateInt(k*6+4, credit);
         beep(1);
       }
       time = millis();
