@@ -112,6 +112,8 @@ void setup()
 {
 #if defined(DEBUG)
   EEPROM.setMaxAllowedWrites(100);
+  EEPROM.setMemPool(0, EEPROMSizeUno);
+  Serial.println(sizeof(products));
 #endif
 #if defined(SERLOG)
   Serial.begin(9600);
@@ -119,7 +121,6 @@ void setup()
 #if defined(MEMDEBUG)
   Serial.println(free_ram());
 #endif
-  Serial.println(sizeof(products));
 #if defined(LCD)
   lcd.init();
 #endif
