@@ -31,8 +31,8 @@
 //#define MEMDEBUG 1
 //#define RFID 1
 #define NET 1
-//#define USE_PN532 1
-#define USE_MFRC522 1
+#define USE_PN532 1
+//#define USE_MFRC522 1
 
 #if defined(USE_PN532)
 #define PN532_SS 9
@@ -49,11 +49,11 @@
 // #include <Adafruit_PN532.h>
 // Deshalb die Seeed-Studio-Variante:
 // https://github.com/Seeed-Studio/PN532
-//#include <PN532_SPI.h>
-//#include <PN532.h>
+#include <PN532_SPI.h>
+#include <PN532.h>
 // Alternative rfid-rc522 (ist schmaler als pn532!)
 // Bibliothek von https://github.com/miguelbalboa/rfid.git
-#include <MFRC522.h>
+//#include <MFRC522.h>
 #include <Ethernet.h>
 #include <Syslog.h>
 
