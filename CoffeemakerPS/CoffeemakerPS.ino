@@ -119,6 +119,7 @@ void setup()
 #if defined(MEMDEBUG)
   Serial.println(free_ram());
 #endif
+  Serial.println(sizeof(products));
 #if defined(LCD)
   lcd.init();
 #endif
@@ -263,6 +264,7 @@ void loop()
         } 
         while (BTstring.charAt(k) != ','); 
         int j = tempString.toInt();
+        Serial.println(i*2+1000);
         EEPROM.updateInt(i*2+1000, j);
         k++;
       }
@@ -317,7 +319,7 @@ void loop()
       buttonPress = true;
       buttonTime = millis();
       int product = 255;
-      for (int i = 0; i < 8; i++) {
+      for (int i = 0; i < sizeof(products); i++) {
         if (message.charAt(3) == products[i]) {
           product = i;
           break;
@@ -341,10 +343,11 @@ void loop()
             case 2: productname = F("Espresso dopio"); break;
             case 3: productname = F("Milchkaffee"); break;
             case 4: productname = F("Kaffee"); break;
-            case 5: productname = F("Dampf links"); break;
-            case 6: productname = F("Dampf rechts"); break;
-            case 7: productname = F("Portion Milch"); break;
-            case 8: productname = F("Caffee Latte"); break;
+            case 5: productname = F("Kaffee gross"); break;
+            case 6: productname = F("Dampf links"); break;
+            case 7: productname = F("Dampf rechts"); break;
+            case 8: productname = F("Portion Milch"); break;
+            case 9: productname = F("Caffee Latte"); break;
 #endif
           }
         price = EEPROM.readInt(product* 2+ 1000);
