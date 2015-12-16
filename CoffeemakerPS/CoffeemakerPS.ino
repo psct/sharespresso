@@ -127,7 +127,7 @@ void setup()
   message_print(F("CoffeemakerPS v0.8"), F("starting up"), 0);
   myCoffeemaker.begin(9600);         // start serial communication at 9600bps
 #if defined(BT)
-  myBT.begin(38400);
+  myBT.begin(9600);
 #endif
   // initialized rfid lib
 #if defined(DEBUG)
