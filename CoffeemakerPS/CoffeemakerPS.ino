@@ -366,14 +366,17 @@ void loop()
       }
     }
   }
-  if (millis()-buttonTime > 5000){  
-    buttonPress = false;
-    price = 0;
-    //message_clear();
+  // User has five seconds to pay
+  if (buttonPress == true) {
+    if (millis()-buttonTime > 5000){  
+      buttonPress = false;
+      price = 0;
+      message_clear();
+    }
+  }
 #if defined(DEBUG)
 //    serlog(F("Timeout getting keypress on machine"));     
 #endif
-  }
   if (buttonPress == true && override == true){
     toCoffeemaker("?ok\r\n");
     buttonPress == false;
@@ -407,6 +410,8 @@ void loop()
             message_print(print10digits(RFIDcard)+ printCredit(credit), F(" "), 0);
             EEPROM.writeInt(k*6+4, ( credit- price));
             toCoffeemaker("?ok\r\n");            // prepare coffee
+            buttonPress= false;
+            price= 0;
           } 
           else {
             beep(2);
