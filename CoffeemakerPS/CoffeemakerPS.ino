@@ -107,6 +107,7 @@ boolean override = false;  // to override payment system by the voice-control/bu
 
 unsigned long RFIDcard = 0;
 int inservice=0;
+int price=0;
 
 void setup()
 {
@@ -174,7 +175,6 @@ void setup()
 
 void loop()
 {
-  int price= 0;
 #if defined(DEBUG)
 //  serlog(F("Entering loop")); 
 #endif
