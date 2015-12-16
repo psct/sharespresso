@@ -6,7 +6,9 @@
 // and key pin to D3
 
 // After uploading/powercycling arduino disconnect Bluetooth 
-// module for a short moment so it recognizes high on key pin
+// module from current (disconnect vcc or gnd) for a short 
+// moment so it recognizes high on key pin and switches into
+// configuration mode
 
 #include <SoftwareSerial.h>
 
