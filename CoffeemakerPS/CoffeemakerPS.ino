@@ -188,7 +188,6 @@ void loop()
 #endif  
   // Check if there is a bluetooth connection and command
   BTstring = "";
-  //  buttonPress = false;
   // handle serial and bluetooth input
 #if defined(BT)
     while( myBT.available()) {
