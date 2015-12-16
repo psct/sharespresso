@@ -31,8 +31,8 @@
 //#define MEMDEBUG 1
 //#define RFID 1
 #define NET 1
-//#define USE_PN532 1
-#define USE_MFRC522 1
+#define USE_PN532 1
+//#define USE_MFRC522 1
 
 #if defined(USE_PN532)
 #define PN532_SS 9
@@ -52,15 +52,15 @@
 // #include <Adafruit_PN532.h>
 // Deshalb die Seeed-Studio-Variante:
 // https://github.com/Seeed-Studio/PN532
-//#include <PN532_SPI.h>
-//#include <PN532.h>
+#include <PN532_SPI.h>
+#include <PN532.h>
 // Alternative rfid-rc522 (ist schmaler als pn532!)
 // Bibliothek von https://github.com/miguelbalboa/rfid.git
-#include <MFRC522.h>
+//#include <MFRC522.h>
 #include <Ethernet.h>
 #include <Syslog.h>
 
-LiquidCrystal_I2C lcd(0x27,16,2);
+LiquidCrystal_I2C lcd(0x20,16,2);
 SoftwareSerial myCoffeemaker(4,5); // RX, TX
 #if defined(BT)
 SoftwareSerial myBT(7,6);
@@ -85,6 +85,7 @@ byte my_loghost[] = { 10,22,0,13 };
 byte my_gateway[] = { 10, 22, 0, 1 };   //your router's IP address
 byte my_dns[] = { 10,10,10,32 };
 byte my_subnet[] = { 255, 255, 0, 0 };    //subnet mask of the network 
+char my_fac[] = "sharespresso";
 #endif
 
 // product codes send by coffeemaker "?PA<x>\r\n", just <x>
@@ -128,7 +129,7 @@ void setup()
   message_print(F("CoffeemakerPS v0.8"), F("starting up"), 0);
   myCoffeemaker.begin(9600);         // start serial communication at 9600bps
 #if defined(BT)
-  myBT.begin(9600);
+  myBT.begin(38400);
 #endif
   // initialized rfid lib
 #if defined(DEBUG)
@@ -165,7 +166,7 @@ void setup()
 #if defined(NET)
   Ethernet.begin(my_mac, my_ip, my_dns, my_gateway, my_subnet);
   Syslog.setLoghost(my_loghost);
-  Syslog.logger(1,5,"sharespresso","Hello world!");
+  Syslog.logger(1,5,my_fac,"start");
 #endif
   message_print(F("Ready to brew"), F(""), 2000);
 #if defined(MEMDEBUG)
@@ -205,6 +206,10 @@ void loop()
     // BT: Start registering new cards until 10 s no valid, unregistered card
 #if defined(DEBUG)
     serlog(BTstring);
+    Syslog.logger(1,5,my_fac,BTstring);
+#endif
+#if defined(NET)
+    
 #endif
     if( BTstring == "RRR" ){          
       time = millis();
@@ -315,6 +320,7 @@ void loop()
   String message = fromCoffeemaker();   // gets answers from coffeemaker 
   if (message.length() > 0){
     serlog( message);
+    Syslog.logger(1,5,my_fac,message);
     if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
       buttonPress = true;
       buttonTime = millis();
@@ -410,6 +416,7 @@ void loop()
             message_print(print10digits(RFIDcard)+ printCredit(credit), F(" "), 0);
             EEPROM.writeInt(k*6+4, ( credit- price));
             toCoffeemaker("?ok\r\n");            // prepare coffee
+            Syslog.logger(1,5,my_fac,"sell: "+ print10digits(RFIDcard)+printCredit(credit-price));
             buttonPress= false;
             price= 0;
           } 
@@ -419,7 +426,8 @@ void loop()
           }
         } 
         else {                                // if no button was pressed on coffeemaker / check credit
-          message_print(printCredit(credit), F("Remaining credit"), 2000);      
+          message_print(printCredit(credit), F("Remaining credit"), 2000);
+          Syslog.logger(1,5,my_fac,print10digits(RFIDcard)+printCredit(credit));
         }
         i = n;      // leave loop (after card has been identified)
       }      
@@ -428,6 +436,7 @@ void loop()
       k=0; 
       beep(2);
       message_print(String(print10digits(RFIDcard)),F("card unknown!"),2000);
+      Syslog.logger(1,5,my_fac,"unknown: "+print10digits(RFIDcard));
     }     	    
   }
 #if defined(DEBUG)
@@ -631,6 +640,7 @@ void registernewcards() {
         int credit= EEPROM.readInt(1000+2*10);
         EEPROM.updateLong(k*6, RFIDcard);
         EEPROM.updateInt(k*6+4, credit);
+        Syslog.logger(1,5,my_fac,"Load: "+ print10digits(RFIDcard)+ printCredit(credit));
         beep(1);
       }
       time = millis();
@@ -684,10 +694,12 @@ void servicetoggle(void){
     inservice=not(inservice);
     if ( inservice) {
       message_print(F("Service Mode"),F("started"),0);
+      Syslog.logger(1,5,my_fac,"service on");
       inkasso_off();
       myBT.listen();
     } else {
       message_print(F("Service Mode"),F("exited"),2000);
+      Syslog.logger(1,5,my_fac,"service off");
       myCoffeemaker.listen();
       inkasso_on();
     }
