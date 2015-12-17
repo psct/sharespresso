@@ -58,6 +58,7 @@
 // Bibliothek von https://github.com/miguelbalboa/rfid.git
 //#include <MFRC522.h>
 #include <Ethernet.h>
+// https://github.com/tomoconnor/ardusyslog/
 #include <Syslog.h>
 
 LiquidCrystal_I2C lcd(0x20,16,2);
@@ -86,6 +87,7 @@ byte my_gateway[] = { 10, 22, 0, 1 };   //your router's IP address
 byte my_dns[] = { 10,10,10,32 };
 byte my_subnet[] = { 255, 255, 0, 0 };    //subnet mask of the network 
 char my_fac[] = "sharespresso";
+String empty="";
 #endif
 
 // product codes send by coffeemaker "?PA<x>\r\n", just <x>
@@ -166,7 +168,7 @@ void setup()
 #if defined(NET)
   Ethernet.begin(my_mac, my_ip, my_dns, my_gateway, my_subnet);
   Syslog.setLoghost(my_loghost);
-  Syslog.logger(1,5,my_fac,"start");
+  Syslog.logger(1,5,my_fac,empty, "start");
 #endif
   message_print(F("Ready to brew"), F(""), 2000);
 #if defined(MEMDEBUG)
@@ -206,7 +208,7 @@ void loop()
     // BT: Start registering new cards until 10 s no valid, unregistered card
 #if defined(DEBUG)
     serlog(BTstring);
-    Syslog.logger(1,5,my_fac,BTstring);
+    Syslog.logger(1,5,my_fac,empty,BTstring);
 #endif
 #if defined(NET)
     
@@ -320,7 +322,7 @@ void loop()
   String message = fromCoffeemaker();   // gets answers from coffeemaker 
   if (message.length() > 0){
     serlog( message);
-    Syslog.logger(1,5,my_fac,message);
+    Syslog.logger(1,5,my_fac,empty,message);
     if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
       buttonPress = true;
       buttonTime = millis();
@@ -416,7 +418,7 @@ void loop()
             message_print(print10digits(RFIDcard)+ printCredit(credit), F(" "), 0);
             EEPROM.writeInt(k*6+4, ( credit- price));
             toCoffeemaker("?ok\r\n");            // prepare coffee
-            Syslog.logger(1,5,my_fac,"sell: "+ print10digits(RFIDcard)+printCredit(credit-price));
+            Syslog.logger(1,5,my_fac,empty,"sell: "+ print10digits(RFIDcard)+printCredit(credit-price));
             buttonPress= false;
             price= 0;
           } 
@@ -427,7 +429,7 @@ void loop()
         } 
         else {                                // if no button was pressed on coffeemaker / check credit
           message_print(printCredit(credit), F("Remaining credit"), 2000);
-          Syslog.logger(1,5,my_fac,print10digits(RFIDcard)+printCredit(credit));
+          Syslog.logger(1,5,my_fac,empty,print10digits(RFIDcard)+printCredit(credit));
         }
         i = n;      // leave loop (after card has been identified)
       }      
@@ -436,7 +438,7 @@ void loop()
       k=0; 
       beep(2);
       message_print(String(print10digits(RFIDcard)),F("card unknown!"),2000);
-      Syslog.logger(1,5,my_fac,"unknown: "+print10digits(RFIDcard));
+      Syslog.logger(1,5,my_fac,empty,"unknown: "+print10digits(RFIDcard));
     }     	    
   }
 #if defined(DEBUG)
@@ -640,7 +642,7 @@ void registernewcards() {
         int credit= EEPROM.readInt(1000+2*10);
         EEPROM.updateLong(k*6, RFIDcard);
         EEPROM.updateInt(k*6+4, credit);
-        Syslog.logger(1,5,my_fac,"Load: "+ print10digits(RFIDcard)+ printCredit(credit));
+        Syslog.logger(1,5,my_fac,empty,"Load: "+ print10digits(RFIDcard)+ printCredit(credit));
         beep(1);
       }
       time = millis();
@@ -694,12 +696,12 @@ void servicetoggle(void){
     inservice=not(inservice);
     if ( inservice) {
       message_print(F("Service Mode"),F("started"),0);
-      Syslog.logger(1,5,my_fac,"service on");
+      Syslog.logger(1,5,my_fac,empty,"service on");
       inkasso_off();
       myBT.listen();
     } else {
       message_print(F("Service Mode"),F("exited"),2000);
-      Syslog.logger(1,5,my_fac,"service off");
+      Syslog.logger(1,5,my_fac,empty,"service off");
       myCoffeemaker.listen();
       inkasso_on();
     }
