@@ -26,7 +26,7 @@ char trivialfix;
 // options to include into project
 //#define BUZZER 1 // piezo buzzer
 #define BUZPIN 3  // digital pin for buzzer
-//#define SERVICEBUT 8 // service button 
+//#define SERVICEBUT 8 // button to switch to service mode 
 //#define BT 1 // bluetooth module
 //#define LCD 1 // i2c lcd
 #define SERLOG 1 // logging to serial port
