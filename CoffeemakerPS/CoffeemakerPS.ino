@@ -24,18 +24,18 @@
 char trivialfix;
 
 // options to include into project
-#define BUZZER 1 // piezo buzzer
+//#define BUZZER 1 // piezo buzzer
 #define BUZPIN 3  // digital pin for buzzer
 //#define SERVICEBUT 8 // service button 
-#define BT 1 // bluetooth module
-#define LCD 1 // i2c lcd
+//#define BT 1 // bluetooth module
+//#define LCD 1 // i2c lcd
 #define SERLOG 1 // logging to serial port
 #define DEBUG 1 // some more logging
 //#define MEMDEBUG 1 // print memory usage 
 //#define RFID 1 // stop on missing rfid reader
 //#define NET 1 // include networking
-//#define USE_PN532 1 // pn532 as rfid reader
-#define USE_MFRC522 1 // mfrc522 as rfid reader
+#define USE_PN532 1 // pn532 as rfid reader
+//#define USE_MFRC522 1 // mfrc522 as rfid reader
 
 // application specific settings
 #define MASTERCARD 73042346 // card uid to enter/exit service mode
@@ -712,7 +712,9 @@ void servicetoggle(void){
       Syslog.logger(1,5,my_fac,empty,"service on");
 #endif
       inkasso_off();
+#if defined(BT)
       myBT.listen();
+#endif
     } else {
       message_print(F("Service Mode"),F("exited"),2000);
 #if defined(NET)
