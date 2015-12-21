@@ -30,9 +30,9 @@
 #define DEBUG 1
 //#define MEMDEBUG 1
 //#define RFID 1
-#define NET 1
-#define USE_PN532 1
-//#define USE_MFRC522 1
+//#define NET 1
+//#define USE_PN532 1
+#define USE_MFRC522 1
 
 #if defined(USE_PN532)
 #define PN532_SS 9
@@ -43,7 +43,9 @@
 
 #include <Wire.h>
 #include <SoftwareSerial.h>
+#if LCD > 0
 #include <LiquidCrystal_I2C.h>
+#endif
 #include <EEPROMex.h>
 #include <SPI.h>
 // Das Adfruit-Teil taugt nicht
@@ -52,16 +54,24 @@
 // #include <Adafruit_PN532.h>
 // Deshalb die Seeed-Studio-Variante:
 // https://github.com/Seeed-Studio/PN532
+#if USE_PN532 > 0
 #include <PN532_SPI.h>
 #include <PN532.h>
+#endif
 // Alternative rfid-rc522 (ist schmaler als pn532!)
 // Bibliothek von https://github.com/miguelbalboa/rfid.git
-//#include <MFRC522.h>
+#if USE_MFRC522 > 0
+#include <MFRC522.h>
+#endif
+#if NET > 0
 #include <Ethernet.h>
 // https://github.com/tomoconnor/ardusyslog/
 #include <Syslog.h>
+#endif
 
+#if defined(LCD)
 LiquidCrystal_I2C lcd(0x20,16,2);
+#endif
 SoftwareSerial myCoffeemaker(4,5); // RX, TX
 #if defined(BT)
 SoftwareSerial myBT(7,6);
@@ -208,10 +218,9 @@ void loop()
     // BT: Start registering new cards until 10 s no valid, unregistered card
 #if defined(DEBUG)
     serlog(BTstring);
-    Syslog.logger(1,5,my_fac,empty,BTstring);
 #endif
 #if defined(NET)
-    
+    Syslog.logger(1,5,my_fac,empty,BTstring);    
 #endif
     if( BTstring == "RRR" ){          
       time = millis();
@@ -322,7 +331,9 @@ void loop()
   String message = fromCoffeemaker();   // gets answers from coffeemaker 
   if (message.length() > 0){
     serlog( message);
+#if defined(NET)
     Syslog.logger(1,5,my_fac,empty,message);
+#endif
     if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
       buttonPress = true;
       buttonTime = millis();
@@ -401,7 +412,9 @@ void loop()
       RFIDcard= 0;
     }
     if (RFIDcard != 0) {
+#if defined(LCD)
       lcd.clear();
+#endif
       break; 
     }           
   } 
@@ -418,7 +431,9 @@ void loop()
             message_print(print10digits(RFIDcard)+ printCredit(credit), F(" "), 0);
             EEPROM.writeInt(k*6+4, ( credit- price));
             toCoffeemaker("?ok\r\n");            // prepare coffee
+#if defined(NET)
             Syslog.logger(1,5,my_fac,empty,"sell: "+ print10digits(RFIDcard)+printCredit(credit-price));
+#endif
             buttonPress= false;
             price= 0;
           } 
@@ -429,7 +444,9 @@ void loop()
         } 
         else {                                // if no button was pressed on coffeemaker / check credit
           message_print(printCredit(credit), F("Remaining credit"), 2000);
+#if defined(NET)
           Syslog.logger(1,5,my_fac,empty,print10digits(RFIDcard)+printCredit(credit));
+#endif
         }
         i = n;      // leave loop (after card has been identified)
       }      
@@ -438,7 +455,9 @@ void loop()
       k=0; 
       beep(2);
       message_print(String(print10digits(RFIDcard)),F("card unknown!"),2000);
+#if defined(NET)
       Syslog.logger(1,5,my_fac,empty,"unknown: "+print10digits(RFIDcard));
+#endif
     }     	    
   }
 #if defined(DEBUG)
@@ -642,7 +661,9 @@ void registernewcards() {
         int credit= EEPROM.readInt(1000+2*10);
         EEPROM.updateLong(k*6, RFIDcard);
         EEPROM.updateInt(k*6+4, credit);
+#if defined(NET)
         Syslog.logger(1,5,my_fac,empty,"Load: "+ print10digits(RFIDcard)+ printCredit(credit));
+#endif
         beep(1);
       }
       time = millis();
@@ -696,12 +717,16 @@ void servicetoggle(void){
     inservice=not(inservice);
     if ( inservice) {
       message_print(F("Service Mode"),F("started"),0);
+#if defined(NET)
       Syslog.logger(1,5,my_fac,empty,"service on");
+#endif
       inkasso_off();
       myBT.listen();
     } else {
       message_print(F("Service Mode"),F("exited"),2000);
+#if defined(NET)
       Syslog.logger(1,5,my_fac,empty,"service off");
+#endif
       myCoffeemaker.listen();
       inkasso_on();
     }
@@ -710,7 +735,9 @@ void servicetoggle(void){
 void inkasso_on(void){
   toCoffeemaker("?M3\r\n");  // activates incasso mode (= no coffee w/o "ok" from the payment system! May be inactivated by sending "?M3" without quotation marks)
   delay (100);               // wait for answer from coffeemaker
+#if defined(LCD)
   lcd.backlight();
+#endif
   if (fromCoffeemaker() == "?ok"){
     beep(1);
     message_print(F("Inkasso mode"),F("activated!"),2000);  
