@@ -20,31 +20,41 @@
  
  The code is provided 'as is', without any guarantuee. Use at your own risk! */
 
-// compile time configuration options
-
 // needed for conditional includes to work, don't ask why ;-)
 char trivialfix;
 
-#define BUZZER 1
-//#define SERVICEBUT 8
-#define BUZPIN 3
-#define BT 1
-#define LCD 1
-#define SERLOG 1
-#define DEBUG 1
-//#define MEMDEBUG 1
-//#define RFID 1
-//#define NET 1
-//#define USE_PN532 1
-#define USE_MFRC522 1
+// options to include into project
+#define BUZZER 1 // piezo buzzer
+#define BUZPIN 3  // digital pin for buzzer
+//#define SERVICEBUT 8 // service button 
+#define BT 1 // bluetooth module
+#define LCD 1 // i2c lcd
+#define SERLOG 1 // logging to serial port
+#define DEBUG 1 // some more logging
+//#define MEMDEBUG 1 // print memory usage 
+//#define RFID 1 // stop on missing rfid reader
+//#define NET 1 // include networking
+//#define USE_PN532 1 // pn532 as rfid reader
+#define USE_MFRC522 1 // mfrc522 as rfid reader
 
-#if defined(USE_PN532)
-#define PN532_SS 9
+// application specific settings
+#define MASTERCARD 73042346 // card uid to enter/exit service mode
+// coffemaker model
+#define X7 1 // x7/saphira
+//#define S95 1
+// network configuration
+#if defined(NET)
+byte my_mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x60, 0xC5 };
+byte my_ip[] = { 10,22,36,160 };
+byte my_loghost[] = { 10,22,0,13 };
+byte my_gateway[] = { 10, 22, 0, 1 };
+byte my_dns[] = { 10,10,10,32 };
+byte my_subnet[] = { 255, 255, 0, 0 }; 
+char my_fac[] = "sharespresso";
+String empty="";
 #endif
 
-// card to enter/exit service mode
-#define MASTERCARD 73042346
-
+// include selected libraries
 #include <Wire.h>
 #include <SoftwareSerial.h>
 #if LCD > 0
@@ -52,27 +62,19 @@ char trivialfix;
 #endif
 #include <EEPROMex.h>
 #include <SPI.h>
-// Das Adfruit-Teil taugt nicht
-// teils blockieren Aufrufe
-// teils nicht - ohne System
-// #include <Adafruit_PN532.h>
-// Deshalb die Seeed-Studio-Variante:
-// https://github.com/Seeed-Studio/PN532
 #if USE_PN532 > 0
-#include <PN532_SPI.h>
+#include <PN532_SPI.h> // https://github.com/Seeed-Studio/PN532
 #include <PN532.h>
 #endif
-// Alternative rfid-rc522 (ist schmaler als pn532!)
-// Bibliothek von https://github.com/miguelbalboa/rfid.git
 #if USE_MFRC522 > 0
-#include <MFRC522.h>
+#include <MFRC522.h> // https://github.com/miguelbalboa/rfid.git
 #endif
 #if NET > 0
 #include <Ethernet.h>
-// https://github.com/tomoconnor/ardusyslog/
-#include <Syslog.h>
+#include <Syslog.h> // https://github.com/tomoconnor/ardusyslog/
 #endif
 
+// hardware specific settings
 #if defined(LCD)
 LiquidCrystal_I2C lcd(0x20,16,2);
 #endif
@@ -80,33 +82,19 @@ SoftwareSerial myCoffeemaker(4,5); // RX, TX
 #if defined(BT)
 SoftwareSerial myBT(7,6);
 #endif
-
 #if defined(USE_PN532)
+#define PN532_SS 9 // select pin for mfrc522
 SPISettings nfc_settings(SPI_CLOCK_DIV8, LSBFIRST, SPI_MODE0);
 PN532_SPI pn532spi(SPI, PN532_SS);
 PN532 nfc(pn532spi);
 #endif
-
 #if defined(USE_MFRC522)
 #define RST_PIN 8
 #define SS_PIN 9
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 #endif
 
-#if defined(NET)
-byte my_mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x60, 0xC5 };
-byte my_ip[] = { 10,22,36,160 };
-byte my_loghost[] = { 10,22,0,13 };
-byte my_gateway[] = { 10, 22, 0, 1 };   //your router's IP address
-byte my_dns[] = { 10,10,10,32 };
-byte my_subnet[] = { 255, 255, 0, 0 };    //subnet mask of the network 
-char my_fac[] = "sharespresso";
-String empty="";
-#endif
-
-// product codes send by coffeemaker "?PA<x>\r\n", just <x>
-//#define S95 1 // s95
-#define X7 1 // x7/sphira
+// product codes send by coffeemakers "?PA<x>\r\n", just <x>
 #if defined(S95)
 char products[] = "EFABJIG";
 #endif
@@ -114,14 +102,13 @@ char products[] = "EFABJIG";
 char products[] = "ABCHDEKJFG";
 #endif
 
-// general variables
+// general variables (used in loop)
 boolean buttonPress = false;
-const int n = 40;  // max total number of cards with access (up to 200 cards max = 199! Do not exceed otherwise you will overwrite price list!)
-String BTstring="";  // contains what is received via bluetooth (from app or other bt client)
-unsigned long time;  // timer for RFID etc
-unsigned long buttonTime;  // timer for button press 
+const int n = 40; // number of cards, max is (1024-11*2)/6=167 on Arduino Uno
+String BTstring=""; // contains what is received via bluetooth (from app or other bt client)
+unsigned long time; // timer for RFID etc
+unsigned long buttonTime; // timer for button press 
 boolean override = false;  // to override payment system by the voice-control/button-press app
-
 unsigned long RFIDcard = 0;
 int inservice=0;
 int price=0;
