@@ -20,8 +20,12 @@ void setup(void){
   Serial.begin(9600);
   mySerial.begin(38400);
   Serial.println("Waiting to settle");
+  Serial.println("Put HC-05 in config mode (hold button or put high on key while powering)");
+  Serial.println("For HC-05 enable cr/lf in serial monitor, set port speed of HC-05 to 38400");
+  Serial.println("For HC-06 disable cr/lf in serial monitor, set port speed of HC-06 to 9600");
+  
   delay(2000);
-  // Set key pin to high
+  // Set key pin to high (set HC-05 to config mode)
   pinMode(KEY, OUTPUT);
   digitalWrite(KEY, HIGH);
   Serial.println("Ready to send AT commands ...");
@@ -35,37 +39,14 @@ void loop(void) {
     mySerial.write(Serial.read());
 }
 
-
-
-/* Mitschnitt des Konfigurierens:
-Waiting to settle
-Ready to send AT commands ...
-ERROR:(0)
-OK
-+VERSION:2.0-20100601
-OK
-+PSWD:1234
-OK
-+ADDR:98d3:31:fd16c9
-OK
-+NAME:HC-05
-OK
-+ROLE:0
-OK
-+SNIFF:0,0,0,0
-OK
-OK
-+NAME:Coffee
-OK
-ERROR:(0)
-OK
-+PSWD:2503
-OK
-OK
-+ROLE:0
-OK
-OK
-
-/*
+/* Common commands:
+ * HC-05:
+ * AT+NAME:<Name>
+ * AT+PSWD:<Pin>
+ * AT+ROLE:0
+ * AT+VERSION
+ * HC-06 (case and timing matters!):
+ * AT+NAME<Name>
+ * AT+PIN<Pin>
+ * AT+VERSION
  */
-
