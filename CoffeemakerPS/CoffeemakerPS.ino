@@ -21,6 +21,10 @@
  The code is provided 'as is', without any guarantuee. Use at your own risk! */
 
 // compile time configuration options
+
+// needed for conditional includes to work, don't ask why ;-)
+char trivialfix;
+
 #define BUZZER 1
 //#define SERVICEBUT 8
 #define BUZPIN 3
