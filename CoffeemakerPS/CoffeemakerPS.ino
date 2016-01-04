@@ -1,24 +1,18 @@
 
-/* An Arduino-based RFID payment system for coffeemakers with toptronic logic unit, as Jura Impressa S95
- and others without modifying the coffeemaker itself. Commands may differ from one coffeemaker to another, 
- they have to be changed in the code, if necessary. Make sure not to accidently reset your coffeemaker's 
- EEPROM! Make a backup, if necessary. 
+/* 
+ Sharespresso by c't/Peter Siering
  
- Hardware used: Arduino Uno, 16x2 LCD I2C, "RDM 630" RFID reader 125 kHz, HC-05 bluetooth, buzzer, 
- male/female jumper wires, a housing.
+ is an Arduino-based RFID payment system for coffeemakers with toptronic logic unit, as Jura 
+ Impressa S95 and others without modifying the coffeemaker itself. 
+
+ Based on Oliver Krohns famous Coffeemaker-Payment-System 
+ at https://github.com/oliverk71/Coffeemaker-Payment-System
  
- pinouts:
- Analog pins 4,5 - LCD I2C
- Digital pins 0,1 - myBT bluetooth RX, TX (hardware serial)
- Digital pins 2,3 - RFID RX, TX
- Digital pins 4,5 - myCoffeemaker RX, TX (software serial)
- Digital pin 12 - piezo buzzer
+ Hardware used: Arduino Uno, 16x2 LCD I2C, pn532/mfrc522 rfid card reader (13.56MHz), 
+ HC-05 bluetooth, male/female jumper wires (optional: ethernet shield, buzzer, button)
  
- Already existing cards can be used! Any 125 kHz RFID tag can be registered. Registering of new cards, 
- charging and deleting of old cards is done via the Android app, but it would be possible to use any 
- other bluetooth client software on smartphone or PC.
- 
- The code is provided 'as is', without any guarantuee. Use at your own risk! */
+ The code is provided 'as is', without any guarantuee. Use at your own risk! 
+*/
 
 // needed for conditional includes to work, don't ask why ;-)
 char trivialfix;
@@ -37,19 +31,19 @@ char trivialfix;
 #define USE_PN532 1 // pn532 as rfid reader
 //#define USE_MFRC522 1 // mfrc522 as rfid reader
 
-// application specific settings
+// set your application specific settings here
 #define MASTERCARD 73042346 // card uid to enter/exit service mode
 // coffemaker model
 #define X7 1 // x7/saphira
 //#define S95 1
 // network configuration
 #if defined(NET)
-byte my_mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x60, 0xC5 };
+byte my_mac[] = { 0xde, 0xad, 0xbe, 0xef, 0xde, 0xad }; // replace
 byte my_ip[] = { 10,22,36,160 };
 byte my_loghost[] = { 10,22,0,13 };
 byte my_gateway[] = { 10, 22, 0, 1 };
 byte my_dns[] = { 10,10,10,32 };
-byte my_subnet[] = { 255, 255, 0, 0 }; 
+byte my_subnet[] = { 255, 255, 0, 0 }; // if unusal has to be stet
 char my_fac[] = "sharespresso";
 String empty="";
 #endif
@@ -175,6 +169,9 @@ void setup()
 #if defined(MEMDEBUG)
   Serial.println(free_ram());
 #endif
+  // activate coffemaker connection and inkasso mode
+  myCoffeemaker.listen();
+  inkasso_on();
 }
 
 void loop()
