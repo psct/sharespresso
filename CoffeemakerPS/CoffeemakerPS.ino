@@ -19,31 +19,31 @@ char trivialfix;
 
 // options to include into project
 //#define BUZZER 1 // piezo buzzer
-#define BUZPIN 3  // digital pin for buzzer
+#define BUZPIN 5  // digital pin for buzzer
 //#define SERVICEBUT 8 // button to switch to service mode 
 //#define BT 1 // bluetooth module
-//#define LCD 1 // i2c lcd
+#define LCD 1 // i2c lcd
 #define SERLOG 1 // logging to serial port
 #define DEBUG 1 // some more logging
 //#define MEMDEBUG 1 // print memory usage 
 //#define RFID 1 // stop on missing rfid reader
-//#define NET 1 // include networking
+#define NET 1 // include networking
 #define USE_PN532 1 // pn532 as rfid reader
 //#define USE_MFRC522 1 // mfrc522 as rfid reader
 
 // set your application specific settings here
-#define MASTERCARD 73042346 // card uid to enter/exit service mode
+#define MASTERCARD 2754927337 // card uid to enter/exit service mode
 // coffemaker model
-#define X7 1 // x7/saphira
-//#define S95 1
+//#define X7 1 // x7/saphira
+#define S95 1
 // network configuration
 #if defined(NET)
-byte my_mac[] = { 0xde, 0xad, 0xbe, 0xef, 0xde, 0xad }; // replace
-byte my_ip[] = { 10,22,36,160 };
-byte my_loghost[] = { 10,22,0,13 };
-byte my_gateway[] = { 10, 22, 0, 1 };
-byte my_dns[] = { 10,10,10,32 };
-byte my_subnet[] = { 255, 255, 0, 0 }; // if unusal has to be stet
+byte my_mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x60, 0xC5 }; // replace
+byte my_ip[] = { 192, 168, 26, 6 };
+byte my_loghost[] = { 192, 168, 26, 254 };
+byte my_gateway[] = { 192, 168, 26, 251 };
+byte my_dns[] = { 192, 168, 26, 5 };
+byte my_subnet[] = { 255, 255, 255, 0 }; // if unusal has to be stet
 char my_fac[] = "sharespresso";
 String empty="";
 #endif
@@ -72,7 +72,7 @@ String empty="";
 #if defined(LCD)
 LiquidCrystal_I2C lcd(0x20,16,2);
 #endif
-SoftwareSerial myCoffeemaker(4,5); // RX, TX
+SoftwareSerial myCoffeemaker(2,3); // RX, TX
 #if defined(BT)
 SoftwareSerial myBT(7,6);
 #endif
@@ -161,7 +161,13 @@ void setup()
   pinMode(SERVICEBUT,INPUT);
 #endif
 #if defined(NET)
+  // disable card reader, bothers ethernet sometimes
+  pinMode( 4, OUTPUT);
+  digitalWrite( 4, HIGH);
+  delay( 1);
+  serlog( F("Starting network ..."));
   Ethernet.begin(my_mac, my_ip, my_dns, my_gateway, my_subnet);
+  serlog( F("Start logging ..."));
   Syslog.setLoghost(my_loghost);
   Syslog.logger(1,5,my_fac,empty, "start");
 #endif
