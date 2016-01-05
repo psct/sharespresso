@@ -190,9 +190,6 @@ void setup()
 
 void loop()
 {
-#if defined(DEBUG)
-//  serlog(F("Entering loop")); 
-#endif
 #if defined(MEMDEBUG)
   Serial.println(free_ram());
 #endif
@@ -334,9 +331,6 @@ void loop()
   }          
 
   // Get key pressed on coffeemaker
-#if defined(DEBUG)
-//  serlog(F("Reading Coffeemaker"));
-#endif
   String message = fromCoffeemaker();   // gets answers from coffeemaker 
   if (message.length() > 0){
     serlog( message);
@@ -384,9 +378,6 @@ void loop()
       } 
       else {
         message_print(F("Error unknown"), F("product"), 2000);
-#if defined(DEBUG)
-        serlog(F("Read error"));
-#endif
         buttonPress = false;
       }
       // boss mode, he does not pay
@@ -404,9 +395,6 @@ void loop()
       message_clear();
     }
   }
-#if defined(DEBUG)
-//    serlog(F("Timeout getting keypress on machine"));     
-#endif
   if (buttonPress == true && override == true){
     toCoffeemaker("?ok\r\n");
     buttonPress == false;
@@ -472,9 +460,6 @@ void loop()
 #endif
     }     	    
   }
-#if defined(DEBUG)
-//  serlog(F("Exiting loop"));
-#endif
 }
 
 String fromCoffeemaker(){
@@ -681,9 +666,7 @@ void registernewcards() {
       time = millis();
     }
   } while ( (millis()-time) < 10000 );
-#if defined(DEBUG)
-  serlog(F("Registering ended"));
-#endif
+  message_print(F("Registering"),F("ended"),2000);
   beep(3);  
 }
 
@@ -711,9 +694,13 @@ unsigned long nfcidread(void) {
 #endif
 #if defined(USE_MFRC522)
   if ( mfrc522.PICC_IsNewCardPresent()) {
+#if defined(DEBUG)
     serlog(F("Found card"));
+#endif
     if ( mfrc522.PICC_ReadCardSerial()) {
+#if defined(DEBUG)
       serlog(F("Read id"));
+#endif
       id = (unsigned long)mfrc522.uid.uidByte[0]<<24;
       id += (unsigned long)mfrc522.uid.uidByte[1]<<16;
       id += (unsigned long)mfrc522.uid.uidByte[2]<<8;
