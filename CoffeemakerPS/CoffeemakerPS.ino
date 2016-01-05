@@ -28,6 +28,7 @@ char trivialfix;
 //#define MEMDEBUG 1 // print memory usage 
 //#define RFID 1 // stop on missing rfid reader
 #define NET 1 // include networking
+#define SYSLOG 1 // log to a log host
 #define USE_PN532 1 // pn532 as rfid reader
 //#define USE_MFRC522 1 // mfrc522 as rfid reader
 
@@ -40,12 +41,14 @@ char trivialfix;
 #if defined(NET)
 byte my_mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x60, 0xC5 }; // replace
 byte my_ip[] = { 192, 168, 26, 6 };
-byte my_loghost[] = { 192, 168, 26, 254 };
 byte my_gateway[] = { 192, 168, 26, 251 };
 byte my_dns[] = { 192, 168, 26, 5 };
 byte my_subnet[] = { 255, 255, 255, 0 }; // if unusal has to be stet
+#if defined(SYSLOG)
+byte my_loghost[] = { 192, 168, 26, 254 };
 char my_fac[] = "sharespresso";
 String empty="";
+#endif
 #endif
 
 // include selected libraries
@@ -65,7 +68,9 @@ String empty="";
 #endif
 #if NET > 0
 #include <Ethernet.h>
+#if SYSLOG > 0
 #include <Syslog.h> // https://github.com/tomoconnor/ardusyslog/
+#endif
 #endif
 
 // hardware specific settings
@@ -167,9 +172,11 @@ void setup()
   delay( 1);
   serlog( F("Starting network ..."));
   Ethernet.begin(my_mac, my_ip, my_dns, my_gateway, my_subnet);
+#if defined(SYSLOG)
   serlog( F("Start logging ..."));
   Syslog.setLoghost(my_loghost);
   Syslog.logger(1,5,my_fac,empty, "start");
+#endif
 #endif
   message_print(F("Ready to brew"), F(""), 2000);
 #if defined(MEMDEBUG)
@@ -213,7 +220,7 @@ void loop()
 #if defined(DEBUG)
     serlog(BTstring);
 #endif
-#if defined(NET)
+#if defined(SYSLOG)
     Syslog.logger(1,5,my_fac,empty,"cmd "+ BTstring);    
 #endif
     if( BTstring == "RRR" ){          
@@ -325,7 +332,7 @@ void loop()
   String message = fromCoffeemaker();   // gets answers from coffeemaker 
   if (message.length() > 0){
     serlog( message);
-#if defined(NET)
+#if defined(SYSLOG)
     Syslog.logger(1,5,my_fac,empty,"coffeemaker "+ message);
 #endif
     if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
@@ -425,7 +432,7 @@ void loop()
             message_print(print10digits(RFIDcard)+ printCredit(credit), F(" "), 0);
             EEPROM.writeInt(k*6+4, ( credit- price));
             toCoffeemaker("?ok\r\n");            // prepare coffee
-#if defined(NET)
+#if defined(SYSLOG)
             Syslog.logger(1,5,my_fac,empty,"sell "+ print10digits(RFIDcard)+" "+printCredit(credit-price));
 #endif
             buttonPress= false;
@@ -438,7 +445,7 @@ void loop()
         } 
         else {                                // if no button was pressed on coffeemaker / check credit
           message_print(printCredit(credit), F("Remaining credit"), 2000);
-#if defined(NET)
+#if defined(SYSLOG)
           Syslog.logger(1,5,my_fac,empty,"credit "+print10digits(RFIDcard)+" "+printCredit(credit));
 #endif
         }
@@ -449,7 +456,7 @@ void loop()
       k=0; 
       beep(2);
       message_print(String(print10digits(RFIDcard)),F("card unknown!"),2000);
-#if defined(NET)
+#if defined(SYSLOG)
       Syslog.logger(1,5,my_fac,empty,"unknown "+print10digits(RFIDcard));
 #endif
     }     	    
@@ -655,7 +662,7 @@ void registernewcards() {
         int credit= EEPROM.readInt(1000+2*10);
         EEPROM.updateLong(k*6, RFIDcard);
         EEPROM.updateInt(k*6+4, credit);
-#if defined(NET)
+#if defined(SYSLOG)
         Syslog.logger(1,5,my_fac,empty,"load "+ print10digits(RFIDcard)+ " "+ printCredit(credit));
 #endif
         beep(1);
@@ -711,7 +718,7 @@ void servicetoggle(void){
     inservice=not(inservice);
     if ( inservice) {
       message_print(F("Service Mode"),F("started"),0);
-#if defined(NET)
+#if defined(SYSLOG)
       Syslog.logger(1,5,my_fac,empty,"service on");
 #endif
       inkasso_off();
@@ -720,7 +727,7 @@ void servicetoggle(void){
 #endif
     } else {
       message_print(F("Service Mode"),F("exited"),2000);
-#if defined(NET)
+#if defined(SYSLOG)
       Syslog.logger(1,5,my_fac,empty,"service off");
 #endif
       myCoffeemaker.listen();
