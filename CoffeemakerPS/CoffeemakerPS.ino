@@ -21,7 +21,7 @@ char trivialfix;
 //#define BUZZER 1 // piezo buzzer
 #define BUZPIN 5  // digital pin for buzzer
 //#define SERVICEBUT 8 // button to switch to service mode 
-//#define BT 1 // bluetooth module
+#define BT 1 // bluetooth module
 #define LCD 1 // i2c lcd
 #define SERLOG 1 // logging to serial port
 #define DEBUG 1 // some more logging
@@ -214,7 +214,7 @@ void loop()
     serlog(BTstring);
 #endif
 #if defined(NET)
-    Syslog.logger(1,5,my_fac,empty,BTstring);    
+    Syslog.logger(1,5,my_fac,empty,"cmd "+ BTstring);    
 #endif
     if( BTstring == "RRR" ){          
       time = millis();
@@ -326,7 +326,7 @@ void loop()
   if (message.length() > 0){
     serlog( message);
 #if defined(NET)
-    Syslog.logger(1,5,my_fac,empty,message);
+    Syslog.logger(1,5,my_fac,empty,"coffeemaker "+ message);
 #endif
     if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
       buttonPress = true;
@@ -426,7 +426,7 @@ void loop()
             EEPROM.writeInt(k*6+4, ( credit- price));
             toCoffeemaker("?ok\r\n");            // prepare coffee
 #if defined(NET)
-            Syslog.logger(1,5,my_fac,empty,"sell: "+ print10digits(RFIDcard)+printCredit(credit-price));
+            Syslog.logger(1,5,my_fac,empty,"sell "+ print10digits(RFIDcard)+" "+printCredit(credit-price));
 #endif
             buttonPress= false;
             price= 0;
@@ -439,7 +439,7 @@ void loop()
         else {                                // if no button was pressed on coffeemaker / check credit
           message_print(printCredit(credit), F("Remaining credit"), 2000);
 #if defined(NET)
-          Syslog.logger(1,5,my_fac,empty,print10digits(RFIDcard)+printCredit(credit));
+          Syslog.logger(1,5,my_fac,empty,"credit "+print10digits(RFIDcard)+" "+printCredit(credit));
 #endif
         }
         i = n;      // leave loop (after card has been identified)
@@ -450,7 +450,7 @@ void loop()
       beep(2);
       message_print(String(print10digits(RFIDcard)),F("card unknown!"),2000);
 #if defined(NET)
-      Syslog.logger(1,5,my_fac,empty,"unknown: "+print10digits(RFIDcard));
+      Syslog.logger(1,5,my_fac,empty,"unknown "+print10digits(RFIDcard));
 #endif
     }     	    
   }
@@ -656,7 +656,7 @@ void registernewcards() {
         EEPROM.updateLong(k*6, RFIDcard);
         EEPROM.updateInt(k*6+4, credit);
 #if defined(NET)
-        Syslog.logger(1,5,my_fac,empty,"Load: "+ print10digits(RFIDcard)+ printCredit(credit));
+        Syslog.logger(1,5,my_fac,empty,"load "+ print10digits(RFIDcard)+ " "+ printCredit(credit));
 #endif
         beep(1);
       }
