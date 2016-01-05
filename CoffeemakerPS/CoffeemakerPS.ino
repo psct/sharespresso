@@ -245,8 +245,12 @@ void loop()
       BTstring.remove(0,3); // removes "DDD" and leaves the index
       int i = BTstring.toInt();
       i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0
-      unsigned long card= EEPROM.readLong(i*6);       
+      unsigned long card= EEPROM.readLong(i*6);
+      int credit= EEPROM.readInt(i*6+4);      
       message_print(print10digits(card), F("deleting"), 2000);
+#if defined(SYSLOG)
+      Syslog.logger(1,5,my_fac,empty,"delete "+ print10digits(card)+ " "+ printCredit(credit));
+#endif      
       EEPROM.updateLong(i*6, 0);
       EEPROM.updateInt(i*6+2, 0);
       beep(1);
@@ -269,6 +273,9 @@ void loop()
       beep(1);
       unsigned long card=EEPROM.readLong(i*6);
       message_print(print10digits(card),"+"+printCredit(j),2000);
+#if defined(SYSLOG)
+      Syslog.logger(1,5,my_fac,empty,"charge "+ print10digits(card)+ " "+ printCredit(j));
+#endif      
     }
     // BT: Receives (updated) price list from app.  
     if(BTstring.startsWith("CHA") == true){
