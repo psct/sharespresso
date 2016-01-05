@@ -129,7 +129,7 @@ void setup()
 #if defined(LCD)
   lcd.init();
 #endif
-  message_print(F("CoffeemakerPS v0.8"), F("starting up"), 0);
+  message_print(F("sharespresso"), F("starting up"), 0);
   myCoffeemaker.begin(9600);         // start serial communication at 9600bps
 #if defined(BT)
   myBT.begin(38400);
@@ -400,6 +400,7 @@ void loop()
     if (millis()-buttonTime > 5000){  
       buttonPress = false;
       price = 0;
+      last_product = "";
       message_clear();
     }
   }
@@ -438,7 +439,7 @@ void loop()
         int credit= EEPROM.readInt(k*6+4);
         if(buttonPress == true){                 // button pressed on coffeemaker?
            if ((credit - price) > 0) {
-            message_print(print10digits(RFIDcard)+ printCredit(credit), F(" "), 0);
+            message_print(print10digits(RFIDcard), printCredit(credit), 0);
             EEPROM.writeInt(k*6+4, ( credit- price));
             toCoffeemaker("?ok\r\n");            // prepare coffee
 #if defined(SYSLOG)
@@ -450,7 +451,7 @@ void loop()
           } 
           else {
             beep(2);
-            message_print(printCredit(credit), F("Not enough credit "), 2000); 
+            message_print(printCredit(credit), F("Not enough"), 2000); 
           }
         } 
         else {                                // if no button was pressed on coffeemaker / check credit
