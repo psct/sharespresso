@@ -111,6 +111,7 @@ boolean override = false;  // to override payment system by the voice-control/bu
 unsigned long RFIDcard = 0;
 int inservice=0;
 int price=0;
+String last_product="";
 
 void setup()
 {
@@ -378,6 +379,7 @@ void loop()
 #endif
           }
         price = EEPROM.readInt(product* 2+ 1000);
+        last_product= String(message.charAt( 3))+ "/"+ String(product)+ " ";
         message_print(productname, printCredit(price), 0);
       } 
       else {
@@ -440,10 +442,11 @@ void loop()
             EEPROM.writeInt(k*6+4, ( credit- price));
             toCoffeemaker("?ok\r\n");            // prepare coffee
 #if defined(SYSLOG)
-            Syslog.logger(1,5,my_fac,empty,"sell "+ print10digits(RFIDcard)+" "+printCredit(credit-price));
+            Syslog.logger(1,5,my_fac,empty,"sell "+ print10digits(RFIDcard)+" "+ last_product+ printCredit( price));
 #endif
             buttonPress= false;
             price= 0;
+            last_product= "";
           } 
           else {
             beep(2);
