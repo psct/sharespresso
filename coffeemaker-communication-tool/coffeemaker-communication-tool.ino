@@ -19,7 +19,7 @@ FA:0C XXL cup
 
 #include <SoftwareSerial.h>
 
-SoftwareSerial mySerial(4, 5); // RX TX 
+SoftwareSerial mySerial(2, 3); // RX TX 
 
 byte z0;
 byte z1;

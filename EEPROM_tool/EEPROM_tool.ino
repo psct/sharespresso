@@ -1,7 +1,7 @@
 #include <SoftwareSerial.h>
 #include <EEPROM.h>
 
-SoftwareSerial myCoffeemaker(4,5); // RX, TX
+SoftwareSerial myCoffeemaker(2,3); // RX, TX
 
 unsigned long cardNr;
 
