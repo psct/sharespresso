@@ -4,7 +4,7 @@ Sharespresso
 is an Arduino-based RFID payment system for coffeemakers with
 toptronic logic unit, as Jura Impressa S95 and others without
 modifying the coffeemaker itself.
- 
+
 Based on Oliver Krohns famous Coffeemaker-Payment-System at
 https://github.com/oliverk71/Coffeemaker-Payment-System
 
@@ -15,7 +15,7 @@ reader (13.56MHz), HC-05 Bluetooth, male/female jumper wires
 The code is provided 'as is', without any guarantuee. Use at your own
 risk!
 
-The difference compared to the original in short:
+The differences compared to the original in short:
 
 - slightly different directory structure
 - modfied pinout for connecting the hardware (see fritzing)
@@ -30,7 +30,10 @@ The difference compared to the original in short:
 - a bunch of other small fixes and changes
 - add sketch to setup Bluetooth dongle
 
-A reference for the several tools can be found here:
+You can find some more information in German at: 
+http://heise.de/-3058350
+
+A reference for several included tools can be found here:
 https://github.com/oliverk71/Coffeemaker-Payment-System
 
 We've used the software with two different coffemakers: x95 and
